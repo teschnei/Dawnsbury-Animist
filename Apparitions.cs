@@ -36,6 +36,7 @@ public static class Extensions
     public static QEffect WithSustaining(this QEffect qe, CombatAction spell, Func<QEffect, Task>? onSustain = null, string? additionalText = null)
     {
         qe.ReferencedSpell = spell;
+        spell.ReferencedQEffect = qe;
         qe.ProvideContextualAction = (QEffect qf) => (!qe.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name, new Trait[4]
         {
             Trait.Concentrate,
@@ -43,7 +44,18 @@ public static class Extensions
             Trait.Basic,
             Trait.DoesNotBreakStealth
         }, "The duration of " + spell.Name + " continues until the end of your next turn." + ((additionalText == null) ? "" : ("\n\n" + additionalText)), Target.Self((Creature self, AI ai) => ai.ShouldSustain(spell))
-        .WithAdditionalRestriction(self => self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Contains(spell) ? null : "You do not have the primary apparition to sustain this spell."))
+        .WithAdditionalRestriction(self =>
+        {
+            if (!self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Contains(spell))
+            {
+                return "You do not have the primary apparition to sustain this spell.";
+            }
+            if (self.HasEffect(AnimistQEffects.PrimaryApparitionBusy))
+            {
+                return "Your primary apparition is currently busy.";
+            }
+            return null;
+        }))
         .WithReferencedQEffect(qf)
         .WithEffectOnSelf(async delegate (CombatAction action, Creature creature)
         {

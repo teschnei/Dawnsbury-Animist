@@ -15,6 +15,8 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly QEffectId TrickstersMirrors = ModManager.RegisterEnumMember<QEffectId>("Trickster's Mirrors");
 
         public static readonly QEffectId ChannelersStance = ModManager.RegisterEnumMember<QEffectId>("Channeler's Stance");
+        //TODO: probably need one for each apparition
+        public static readonly QEffectId PrimaryApparitionBusy = ModManager.RegisterEnumMember<QEffectId>("Apparition Busy");
 
         public static readonly TileQEffectId RiverCarvingMountains = ModManager.RegisterEnumMember<TileQEffectId>("River Carving Mountains Tile");
     }
