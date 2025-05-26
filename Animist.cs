@@ -61,15 +61,6 @@ You also gain one spell slot that can be used to cast any apparition spell once 
                 sheet.SpellRepertoires.Add(AnimistTrait.Apparition, new SpellRepertoire(Ability.Wisdom, Trait.Divine));
                 sheet.SpellRepertoires[AnimistTrait.Apparition].SpellSlots[0] = 2;
                 sheet.SpellRepertoires[AnimistTrait.Apparition].SpellSlots[1] = 1;
-                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), sheet.CurrentLevel >= 7 ? 3 : 2));
-                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistPrimaryApparition", "Primary Apparitions", SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, (ft, values) =>
-                {
-                    if (ft is Apparition apparition)
-                    {
-                        return values.HasFeat(apparition.AttunedFeat);
-                    }
-                    return false;
-                }, 1));
 
                 sheet.AddAtLevel(2, values =>
                 {
@@ -132,10 +123,24 @@ You also gain one spell slot that can be used to cast any apparition spell once 
                     }
                 };
                 */
+                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), sheet.CurrentLevel >= 7 ? 3 : 2));
+                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistPrimaryApparition", "Primary Apparitions", SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, (ft, values) =>
+                {
+                    if (ft is Apparition apparition)
+                    {
+                        return values.HasFeat(apparition.AttunedFeat);
+                    }
+                    return false;
+                }, 1));
             })
             .WithOnCreature((sheet, creature) =>
             {
             });
+        foreach (var i in Apparition.GetApparitions())
+        {
+            yield return i;
+            yield return i.AttunedFeat;
+        }
         yield return new TrueFeat(AnimistFeat.ApparitionSense, 1,
                 "You can see and interact with things others can’t.",
                 "You have apparition sight, an imprecise sense that allows you to detect the presence of invisible or hidden spirits, haunts, and undead within 30 feet of you.",
@@ -218,8 +223,14 @@ You also gain one spell slot that can be used to cast any apparition spell once 
         yield return new TrueFeat(AnimistFeat.RelinquishControl, 1,
                 "Your apparition takes over and shields you from outside influence.",
                 "Until the start of your next turn, you gain a +4 status bonus on saves against spells and effects that give you the controlled condition or attempt to influence your actions (such as charm, command, or a nosoi’s haunting melody). However, the only actions you can take are to Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action that has the apparition trait.\n{b}Special{/b} This feat requires a particularly strong bond with a specific apparition to learn. Choose one apparition you have access to; once you learn this feat, you must always choose that apparition as one of the apparitions you attune to each day.",
-                [AnimistTrait.Animist, AnimistTrait.Apparition])
+                [AnimistTrait.Animist, AnimistTrait.Apparition],
+                AllFeats.All.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned)).ToList())
             .WithActionCost(0)
+            .WithOnSheet(sheet =>
+            {
+                sheet.SelectionOptions.RemoveAll(option => option.Name == "Attuned Apparitions");
+                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), sheet.CurrentLevel >= 7 ? 2 : 1));
+            })
             .WithPermanentQEffect("You gain a +4 status bonus on saves against controlling effects, but you can only take the Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action with the apparition trait.", q =>
             {
                 q.ProvideMainAction = qe =>
@@ -244,7 +255,11 @@ You also gain one spell slot that can be used to cast any apparition spell once 
                                 },
                                 BonusToDefenses = (qe, action, defense) =>
                                 {
-                                    //TODO: figure out controlling effects?
+                                    //TODO: figure out all controlling effects?
+                                    if (action?.SpellId == SpellId.Command)
+                                    {
+                                        return new Bonus(4, BonusType.Status, "Relinquish Control", true);
+                                    }
                                     return null;
                                 }
                             });
@@ -271,11 +286,11 @@ You also gain one spell slot that can be used to cast any apparition spell once 
                 "Your place in the balance between the forces of life and entropy expands the spells you can pull from the spirit realms.",
                 "You add heal and harm to your apparition spell repertoire, allowing you to cast them with your apparition spellcasting.",
                 [AnimistTrait.Animist])
-        .WithOnSheet(sheet => sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.AddRange(
-                from spellid in new List<SpellId> { SpellId.Heal, SpellId.Harm }
-                from spellLevel in Enumerable.Range(1, sheet.MaximumSpellLevel)
-                select AllSpells.CreateModernSpellTemplate(spellid, AnimistTrait.Apparition, spellLevel)
-        ));
+            .WithOnSheet(sheet => sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.AddRange(
+                    from spellid in new List<SpellId> { SpellId.Heal, SpellId.Harm }
+                    from spellLevel in Enumerable.Range(1, sheet.MaximumSpellLevel)
+                    select AllSpells.CreateModernSpellTemplate(spellid, AnimistTrait.Apparition, spellLevel)
+            ));
         /*
         yield return new TrueFeat(AnimistFeat.EnhancedFamiliar, 2,
                 "You are able to materialize more of your attuned apparition’s essence, creating a more powerful vessel for it to inhabit and aid you with.",
@@ -292,10 +307,5 @@ You also gain one spell slot that can be used to cast any apparition spell once 
                 "If the next action you use is to Cast a Spell that has an area of a burst, cone, or line and does not have a duration, increase the area of that spell. Add 5 feet to the radius of a burst that normally has a radius of at least 10 feet (a burst with a smaller radius is not affected). Add 5 feet to the length of a cone or line that is normally 15 feet long or smaller, and add 10 feet to the length of a larger cone or line. You can also use this feat to increase the radius of an emanation spell with a duration by 5 feet by dedicating your primary apparition to maintaining the spellshape; dedicating the apparition to the spell prevents you from using the apparition’s vessel spell, apparition skills, or avatar form for the duration of the modified spell.",
                 [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Concentrate, Trait.Metamagic])
             .WithActionCost(1);
-        foreach (var i in Apparition.GetApparitions())
-        {
-            yield return i;
-            yield return i.AttunedFeat;
-        }
     }
 }

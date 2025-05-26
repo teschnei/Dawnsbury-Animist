@@ -28,7 +28,6 @@ using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Display.Text;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using Dawnsbury.Modding;
-using Dawnsbury.Core.CharacterBuilder;
 
 namespace Dawnsbury.Mods.Classes.Animist.Apparitions;
 
@@ -97,7 +96,8 @@ public class Apparition : Feat
                     }
                 }
             });
-        WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
+        //TODO:
+        //WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
     }
 
     private static string Ordinalize(int lvl)
