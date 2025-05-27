@@ -146,5 +146,11 @@ You also gain one spell slot that can be used to cast any apparition spell once 
         {
             yield return i;
         }
+
+        //Level 4 Feats
+        foreach (var i in Feats.Level4.CreateFeats())
+        {
+            yield return i;
+        }
     }
 }

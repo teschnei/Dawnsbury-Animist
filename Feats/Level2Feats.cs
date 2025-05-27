@@ -1,5 +1,3 @@
-
-
 using System.Collections.Generic;
 using System.Linq;
 using Dawnsbury.Core.CharacterBuilder.Feats;
@@ -43,7 +41,7 @@ public static class Level2
             });
         yield return new TrueFeat(AnimistFeat.EmbodimentOfTheBalance, 2,
                 "Your place in the balance between the forces of life and entropy expands the spells you can pull from the spirit realms.",
-                "You add heal and harm to your apparition spell repertoire, allowing you to cast them with your apparition spellcasting.",
+                $"You add {AllSpells.CreateModernSpellTemplate(SpellId.Heal, AnimistTrait.Animist).ToSpellLink()} and {AllSpells.CreateModernSpellTemplate(SpellId.Harm, AnimistTrait.Animist).ToSpellLink()} to your apparition spell repertoire, allowing you to cast them with your apparition spellcasting.",
                 [AnimistTrait.Animist])
             .WithOnSheet(sheet => sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.AddRange(
                     from spellid in new List<SpellId> { SpellId.Heal, SpellId.Harm }
