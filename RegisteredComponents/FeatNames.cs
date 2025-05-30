@@ -35,6 +35,9 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly FeatName StewardOfStoneAndFirePrimary = ModManager.RegisterFeatName("Steward Of Stone And Fire Primary", "Steward Of Stone And Fire");
         public static readonly FeatName VanguardOfRoaringWatersPrimary = ModManager.RegisterFeatName("Vanguard Of Roaring Waters Primary", "Vanguard Of Roaring Waters");
         public static readonly FeatName WitnessToAncientBattlesPrimary = ModManager.RegisterFeatName("Witness To Ancient Battles Primary", "Witness To Ancient Battles");
+        //Features
+        public static readonly FeatName ThirdApparition = ModManager.RegisterFeatName("Third Apparition");
+        public static readonly FeatName WanderingFeat = ModManager.RegisterFeatName("Wandering Feat");
         //Feats
         // 1st
         public static readonly FeatName ApparitionSense = ModManager.RegisterFeatName("Apparition Sense");

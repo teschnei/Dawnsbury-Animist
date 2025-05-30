@@ -12,11 +12,13 @@ using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Mechanics.Targeting.TargetingRequirements;
 using Dawnsbury.Core.Mechanics.Targeting.Targets;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
+using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 
 namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level2
 {
+    [FeatGenerator]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.ConcealSpell, 2,

@@ -28,6 +28,7 @@ using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Display.Text;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using Dawnsbury.Modding;
+using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 
 namespace Dawnsbury.Mods.Classes.Animist.Apparitions;
 
@@ -46,7 +47,7 @@ public static class Extensions
         }, "The duration of " + spell.Name + " continues until the end of your next turn." + ((additionalText == null) ? "" : ("\n\n" + additionalText)), Target.Self((Creature self, AI ai) => ai.ShouldSustain(spell))
         .WithAdditionalRestriction(self =>
         {
-            if (!self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Contains(spell))
+            if (!self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Exists(sp => sp.SpellId == spell.SpellId))
             {
                 return "You do not have the primary apparition to sustain this spell.";
             }
@@ -254,10 +255,13 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 .WithActionCost(1)
                 .WithEffectOnEachTarget(async (spell, caster, target, checkResult) =>
                 {
-                    //TODO: there's just no hope for this one I think
-                    var qe = new QEffect(spell.Name, "Storing time grants you a bonus reaction for any animist or apparition reaction.", ExpirationCondition.ExpiresAtEndOfYourTurn, caster, IllustrationName.Slow)
+                    var qe = new QEffect(spell.Name, "Storing time for a bonus reaction for any animist or apparition reaction.", ExpirationCondition.ExpiresAtEndOfYourTurn, caster, IllustrationName.Slow)
                     {
                         CannotExpireThisTurn = true,
+                        StartOfYourEveryTurn = async (q, self) =>
+                        {
+                            q.Tag = null;
+                        }
                     }.WithSustaining(spell);
                     caster.AddQEffect(qe);
                 });
@@ -696,20 +700,6 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     form.CannotExpireThisTurn = true;
                     form.WithSustaining(spell, async qe =>
                     {
-                        /*
-                            AdvancedRequest formRequest = new AdvancedRequest(qe.Owner, "Change form?", [
-                                .. from variant in variants select new ChooseVariantThenActionOption(spell, variant, "Text", async () => ApplyDarkenedForestForm(spell, variant, caster) != null, 0, true),
-                                new ChoiceButtonOption(0, "Choice 1"),
-                                new ChoiceButtonOption(1, "Choice 2"),
-                                new PassViaButtonOption("Remain in current form.")
-                            ])
-                            {
-                                TopBarText = "TEST",
-                                TopBarIcon = IllustrationName.WildShape
-                            };
-
-                            await (await qe.Owner.Battle.SendRequest(formRequest)).ChosenOption.Action();
-                            */
                         var choice = await qe.Owner.AskForChoiceAmongButtons(spell.Illustration, "Change into a different shape?", [.. from variant in variants select variant.Name, "Stay in current form"]);
                         var new_variant = variants.Where(variant => variant.Name == choice.Caption).First();
                         ApplyDarkenedForestForm(spell, new_variant, caster);
@@ -983,5 +973,15 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     target.AddQEffect(reactiveStrike);
                 });
             }), "Witnesses to ancient battles may be the lingering remnants of soldiers who never returned from their last deployment or the restless souls of warriors whose final contest left them unfulfilled. Or the apparitions may be valkyries and other beings from beyond, naturally drawn to sites of death and battle, or even the unquiet entity formed from a battlefield that saw so much death and blood it gained a spiritual essence of its own. Witnesses to ancient battles are often somber and grim.");
+    }
+
+    [FeatGenerator]
+    static IEnumerable<Feat> CreateFeats()
+    {
+        foreach (var apparition in GetApparitions())
+        {
+            yield return apparition;
+            yield return apparition.AttunedFeat;
+        }
     }
 }

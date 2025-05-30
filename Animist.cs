@@ -5,16 +5,19 @@ using Dawnsbury.Core.CharacterBuilder.AbilityScores;
 using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Core.CharacterBuilder.Selections.Options;
 using Dawnsbury.Core.CharacterBuilder.Spellcasting;
+using Dawnsbury.Core.Mechanics;
 using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Display.Text;
 using Dawnsbury.Mods.Classes.Animist.Apparitions;
 using Dawnsbury.Mods.Classes.Animist.Practices;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
+using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 
 namespace Dawnsbury.Mods.Classes.Animist;
 
 public static class Animist
 {
+    [FeatGenerator]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new ClassSelectionFeat(AnimistFeat.AnimistClass,
@@ -124,33 +127,15 @@ You also gain one spell slot that can be used to cast any apparition spell once 
                     return false;
                 }, 1));
             })
-            .WithOnCreature((sheet, creature) =>
+            .WithOnCreature(cr =>
             {
+                if (cr.Level >= 7)
+                {
+                    cr.AddQEffect(new QEffect()
+                    {
+                        Id = AnimistQEffects.ThirdApparition
+                    });
+                }
             });
-
-        //Apparitions, vessel spells
-        foreach (var i in Apparition.GetApparitions())
-        {
-            yield return i;
-            yield return i.AttunedFeat;
-        }
-
-        //Level 1 Feats
-        foreach (var i in Feats.Level1.CreateFeats())
-        {
-            yield return i;
-        }
-
-        //Level 2 Feats
-        foreach (var i in Feats.Level2.CreateFeats())
-        {
-            yield return i;
-        }
-
-        //Level 4 Feats
-        foreach (var i in Feats.Level4.CreateFeats())
-        {
-            yield return i;
-        }
     }
 }

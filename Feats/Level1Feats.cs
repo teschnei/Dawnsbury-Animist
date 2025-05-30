@@ -14,11 +14,13 @@ using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Possibilities;
 using Dawnsbury.Mods.Classes.Animist.Apparitions;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
+using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 
 namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level1
 {
+    [FeatGenerator]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.ApparitionSense, 1,
@@ -38,8 +40,8 @@ public static class Level1
                 q.ProvideMainAction = qe =>
                 {
                     return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.MagicWeapon, "Channeler's Stance", [AnimistTrait.Animist, Trait.Stance],
-                                "You enter a stance that grants a status bonus equal to the spell's rank to apparition spells or vessel spells that deal energy damage, and to spells that have the vitality or void traits that restore Hit Points.",
-                                Target.Self(null).WithAdditionalRestriction(self => self.HasEffect(AnimistQEffects.ChannelersStance) ? "You're already in this stance." : null))
+                            "You enter a stance that grants a status bonus equal to the spell's rank to apparition spells or vessel spells that deal energy damage, and to spells that have the vitality or void traits that restore Hit Points.",
+                            Target.Self(null).WithAdditionalRestriction(self => self.HasEffect(AnimistQEffects.ChannelersStance) ? "You're already in this stance." : null))
                         .WithActionCost(1)
                         .WithEffectOnSelf(async (action, self) =>
                         {
@@ -83,8 +85,8 @@ public static class Level1
                 q.ProvideMainAction = qe =>
                 {
                     return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.CircleOfProtection, "Circle Of Spirits", [AnimistTrait.Animist, Trait.Concentrate],
-                                "Choose another apparition from among those you’ve attuned to; it becomes your primary apparition, replacing your current one.",
-                                Target.Self(null))
+                            "Choose another apparition from among those you’ve attuned to; it becomes your primary apparition, replacing your current one.",
+                            Target.Self(null))
                         .WithActionCost(1)
                         .WithEffectOnSelf(async (action, self) =>
                         {
@@ -116,8 +118,8 @@ public static class Level1
                 q.ProvideMainAction = qe =>
                 {
                     return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.CircleOfProtection, "Relinquish Control", [AnimistTrait.Animist, AnimistTrait.Apparition],
-                                "Until the start of your next turn, you gain a +4 status bonus on saves against spells and effects that give you the controlled condition or attempt to influence your actions (such as charm, command, or a nosoi’s haunting melody). However, the only actions you can take are to Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action that has the apparition trait.\n{b}Special{/b} This feat requires a particularly strong bond with a specific apparition to learn. Choose one apparition you have access to; once you learn this feat, you must always choose that apparition as one of the apparitions you attune to each day.",
-                                Target.Self(null))
+                            "Until the start of your next turn, you gain a +4 status bonus on saves against spells and effects that give you the controlled condition or attempt to influence your actions (such as charm, command, or a nosoi’s haunting melody). However, the only actions you can take are to Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action that has the apparition trait.\n{b}Special{/b} This feat requires a particularly strong bond with a specific apparition to learn. Choose one apparition you have access to; once you learn this feat, you must always choose that apparition as one of the apparitions you attune to each day.",
+                            Target.Self(null))
                         .WithActionCost(0)
                         .WithEffectOnSelf(async (action, self) =>
                         {
@@ -127,7 +129,8 @@ public static class Level1
                                 PreventTakingAction = action =>
                                 {
                                     if (action.ActionId == ActionId.Step || action.ActionId == ActionId.Stride || action.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition ||
-                                        (action.ReferencedQEffect?.ReferencedSpell?.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition))
+                                        (action.ReferencedQEffect?.ReferencedSpell?.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition) ||
+                                        (self.HasEffect(AnimistQEffects.InstinctiveManeuvers) && (action.ActionId == ActionId.Grapple || action.ActionId == ActionId.Shove || action.ActionId == ActionId.Trip)))
                                     {
                                         return null;
                                     }
@@ -139,6 +142,14 @@ public static class Level1
                                     if (action?.SpellId == SpellId.Command)
                                     {
                                         return new Bonus(4, BonusType.Status, "Relinquish Control", true);
+                                    }
+                                    return null;
+                                },
+                                BonusToSkillChecks = (skill, action, target) =>
+                                {
+                                    if (self.HasEffect(AnimistQEffects.InstinctiveManeuvers) && (action.ActionId == ActionId.Grapple || action.ActionId == ActionId.Shove || action.ActionId == ActionId.Trip) && skill == Skill.Athletics)
+                                    {
+                                        return new Bonus(2, BonusType.Status, "Instinctive Maneuvers", true);
                                     }
                                     return null;
                                 }

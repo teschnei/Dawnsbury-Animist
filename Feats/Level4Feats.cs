@@ -12,11 +12,13 @@ using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Possibilities;
 using Dawnsbury.Core.Roller;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
+using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 
 namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level4
 {
+    [FeatGenerator]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.ApparitionsEnhancement, 4,
@@ -29,20 +31,20 @@ public static class Level4
                 q.ProvideMainAction = qe =>
                 {
                     return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.MagicWeapon, "Apparition's Enhancement", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Divine, Trait.Force],
-                                "Spiritual power encases your weapon or unarmed attack. Until the end of your turn, one wielded weapon or unarmed attack you have deals an extra 1d6 force damage and gains the divine trait, if it didn't have it already.",
-                                Target.Self(null).WithAdditionalRestriction(self =>
+                            "Spiritual power encases your weapon or unarmed attack. Until the end of your turn, one wielded weapon or unarmed attack you have deals an extra 1d6 force damage and gains the divine trait, if it didn't have it already.",
+                            Target.Self(null).WithAdditionalRestriction(self =>
+                            {
+                                var lastAction = self.Actions.ActionHistoryThisEncounter.Where(a => a.SpentActions > 0 || a.ActionCost > 0).LastOrDefault();
+                                if (lastAction == null)
                                 {
-                                    var lastAction = self.Actions.ActionHistoryThisEncounter.Where(a => a.SpentActions > 0 || a.ActionCost > 0).LastOrDefault();
-                                    if (lastAction == null)
-                                    {
-                                        return "You haven't acted yet.";
-                                    }
-                                    if (lastAction.SpellLevel == 0)
-                                    {
-                                        return "Your last action wasn't to cast a non-cantrip spell.";
-                                    }
-                                    return null;
-                                }))
+                                    return "You haven't acted yet.";
+                                }
+                                if (lastAction.SpellLevel == 0)
+                                {
+                                    return "Your last action wasn't to cast a non-cantrip spell.";
+                                }
+                                return null;
+                            }))
                         .WithActionCost(0)
                         .WithEffectOnSelf(async (action, self) =>
                         {
@@ -87,24 +89,24 @@ public static class Level4
                 q.ProvideMainAction = qe =>
                 {
                     return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.MagicWeapon, "Channeled Protection", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Aura],
-                                "You enter a stance that grants a status bonus equal to the spell's rank to apparition spells or vessel spells that deal energy damage, and to spells that have the vitality or void traits that restore Hit Points.",
-                                Target.Self(null).WithAdditionalRestriction(self =>
+                            "You enter a stance that grants a status bonus equal to the spell's rank to apparition spells or vessel spells that deal energy damage, and to spells that have the vitality or void traits that restore Hit Points.",
+                            Target.Self(null).WithAdditionalRestriction(self =>
+                            {
+                                var lastAction = self.Actions.ActionHistoryThisEncounter.Where(a => a.SpentActions > 0 || a.ActionCost > 0).LastOrDefault();
+                                if (lastAction == null)
                                 {
-                                    var lastAction = self.Actions.ActionHistoryThisEncounter.Where(a => a.SpentActions > 0 || a.ActionCost > 0).LastOrDefault();
-                                    if (lastAction == null)
-                                    {
-                                        return "You haven't acted yet.";
-                                    }
-                                    if (lastAction.SpellcastingSource?.ClassOfOrigin != AnimistTrait.Animist || lastAction.SpellLevel == 0)
-                                    {
-                                        return "Your last action wasn't to cast a spell from your spell slots.";
-                                    }
-                                    if (!self.HasEffect(AnimistQEffects.ChannelersStance))
-                                    {
-                                        return "You aren't in Channeler's Stance.";
-                                    }
-                                    return null;
-                                }))
+                                    return "You haven't acted yet.";
+                                }
+                                if (lastAction.SpellcastingSource?.ClassOfOrigin != AnimistTrait.Animist || lastAction.SpellLevel == 0)
+                                {
+                                    return "Your last action wasn't to cast a spell from your spell slots.";
+                                }
+                                if (!self.HasEffect(AnimistQEffects.ChannelersStance))
+                                {
+                                    return "You aren't in Channeler's Stance.";
+                                }
+                                return null;
+                            }))
                         .WithActionCost(1)
                         .WithEffectOnSelf(async (action, self) =>
                         {
