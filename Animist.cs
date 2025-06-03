@@ -96,27 +96,6 @@ You also gain one spell slot that can be used to cast any apparition spell once 
                 {
                     values.PreparedSpells[AnimistTrait.Animist].Slots.Add(new FreePreparedSpellSlot(4, "AnimistSlot4-2"));
                 });
-                // If we unattune a primary apparition, unset the primary apparition
-                /*
-                sheet.AtEndOfRecalculation += (sheet) =>
-                {
-                    if (sheet.AllFeats.Any(ft =>
-                    {
-                        if (ft is Apparition apparition)
-                        {
-                            return !sheet.HasFeat(apparition.AttunedFeat);
-                        }
-                        return false;
-                    }))
-                    {
-                        foreach (var selection in sheet.SelectionOptions.Where(option => option.Name == "Primary Apparitions"))
-                        {
-                            sheet.Sheet.SelectedFeats[selection.Key] = null;
-                            sheet.Sheet.SelectedFeats[selection.KeyLegacy] = null;
-                        }
-                    }
-                };
-                */
                 sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), sheet.CurrentLevel >= 7 ? 3 : 2));
                 sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistPrimaryApparition", "Primary Apparitions", SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, (ft, values) =>
                 {

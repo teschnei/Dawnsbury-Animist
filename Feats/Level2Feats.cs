@@ -212,14 +212,19 @@ public static class Level2
                         }
                         if (targetLine is EmanationTarget emanation)
                         {
-                            //TODO: just set Range when it's writeable
-                            //emanation.Range += 1;
-                            EmanationTarget newEmanation = new EmanationTarget(emanation.Range + 1, emanation.IncludeSelf)
+                            int oldRange = emanation.Range;
+                            var oldDetermineRange = emanation.DetermineRange;
+                            emanation.DetermineRange = target =>
                             {
-                                CreatureGoodness = emanation.CreatureGoodness,
-                                AdditionalRequirementOnCaster = emanation.AdditionalRequirementOnCaster
+                                if (oldDetermineRange == null)
+                                {
+                                    return oldRange + 1;
+                                }
+                                else
+                                {
+                                    return oldDetermineRange(target) + 1;
+                                }
                             };
-                            emanation = newEmanation;
                             metamagicSpell.EffectOnChosenTargets += async (spell, caster, targets) =>
                             {
                                 caster.AddQEffect(new QEffect()

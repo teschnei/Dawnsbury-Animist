@@ -22,6 +22,7 @@ using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Mechanics.Targeting.TargetingRequirements;
 using Dawnsbury.Core.Mechanics.Targeting.Targets;
 using Dawnsbury.Core.Mechanics.Treasure;
+using Dawnsbury.Core.Mechanics.Zoning;
 using Dawnsbury.Core.Roller;
 using Dawnsbury.Core.Tiles;
 using Dawnsbury.Display.Illustrations;
@@ -68,6 +69,13 @@ public static class Extensions
         })).WithPossibilityGroup("Maintain an activity") : null;
         return qe;
     }
+
+    public static QEffect WithZone(this QEffect qe, ZoneAttachment zoneAttachment, Action<QEffect, Zone>? zoneSetup = null)
+    {
+        var zone = Zone.Spawn(qe, zoneAttachment);
+        zoneSetup?.Invoke(qe, zone);
+        return qe;
+    }
 }
 
 public class Apparition : Feat
@@ -109,7 +117,6 @@ public class Apparition : Feat
                     }
                 }
             });
-        //TODO:
         //WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
     }
 
@@ -279,8 +286,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
             {
                 return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.Bane,
                     "Discomfiting Whispers",
-                    //Should be Misfortune and Void
-                    [AnimistTrait.Animist, Trait.Aura, Trait.Focus, Trait.Fortune, Trait.Negative],
+                    [AnimistTrait.Animist, Trait.Aura, Trait.Focus, Trait.Misfortune, Trait.Negative],
                     "You are surrounded by an aura of spiteful murmuring that incite bad luck and punish failure.",
                     $"Each creature that starts their turn within the area of this spell must succeed at a Will save or roll twice on their first attack roll that round and take the lower result. If an attack roll modified in this way results in a failure, the creature that rolled the failed attack takes {S.HeightenedVariable((spellLevel + 1) / 2, 1)}d6 damage.",
                     Target.Emanation(1),
@@ -317,18 +323,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                                     {
                                         cr.AddQEffect(new QEffect("Discomfiting Whispers", "Discomfiting Whispers has caused you to reroll your first attack roll and take damage if it fails.", ExpirationCondition.ExpiresAtEndOfYourTurn, whispersQE.Owner, IllustrationName.Bane)
                                         {
-                                            RerollActiveRoll = async (qe, result, action, target) =>
-                                            {
-                                                if (action.HasTrait(Trait.Attack))
-                                                {
-                                                    //There's no misfortune support in here, so I guess this is the closest I can get for now
-                                                    if (result.CheckResult >= CheckResult.Success)
-                                                    {
-                                                        return RerollDirection.RerollAndKeepSecond;
-                                                    }
-                                                }
-                                                return RerollDirection.DoNothing;
-                                            },
+                                            RerollActiveRoll = async (qe, result, action, target) => action.HasTrait(Trait.Attack) ? RerollDirection.RerollAndKeepWorst : RerollDirection.DoNothing,
                                             AfterYouMakeAttackRoll = (qe, result) =>
                                             {
                                                 if (result.CheckResult <= CheckResult.Failure)
@@ -511,28 +506,6 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     self.AddQEffect(new QEffect(spell.Name, "Enemies must make a Will saving throw when entering the aura or become confused.", ExpirationCondition.ExpiresAtEndOfYourTurn, self, spell.Illustration)
                     {
                         CannotExpireThisTurn = true,
-                        Tag = new List<Creature>(),
-                        //TODO: UPDATE: update with Zones in next update
-                        StateCheck = qe =>
-                        {
-                            if (qe.Owner.Battle.ActiveCreature?.DistanceTo(qe.Owner) <= 2 &&
-                                    qe.Owner.Battle.ActiveCreature.EnemyOf(qe.Owner) &&
-                                    !((qe.Tag as List<Creature>)!.Contains(qe.Owner.Battle.ActiveCreature)))
-                            {
-                                (qe.Tag as List<Creature>)!.Add(qe.Owner.Battle.ActiveCreature);
-                                CheckResult result = CommonSpellEffects.RollSpellSavingThrow(qe.Owner.Battle.ActiveCreature, spell, Defense.Will);
-                                if (result < CheckResult.Success)
-                                {
-                                    qe.Owner.Battle.ActiveCreature.AddQEffect(QEffect.Confused(false, spell)
-                                        .WithExpirationAtStartOfSourcesTurn(qe.Owner, 1)
-                                        .WithSourceAction(spell));
-                                }
-                            }
-                        },
-                        StartOfYourPrimaryTurn = async (qe, self) =>
-                        {
-                            (qe.Tag as List<Creature>)!.Clear();
-                        },
                         PreventTargetingBy = action =>
                         {
                             if (action.Owner.QEffects.Any(q => q.Id == QEffectId.Confused && q.SourceAction == spell) && action.IsHostileAction)
@@ -542,7 +515,27 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                             return null;
                         },
                         SpawnsAura = q => q.Owner.AnimationData.AddAuraAnimation(IllustrationName.BlessCircle, 2, Color.Plum)
-                    }.WithSustaining(spell));
+                    }
+                    .WithSustaining(spell)
+                    .WithZone(ZoneAttachment.Aura(2), (qe, zone) =>
+                    {
+                        zone.TileEffectCreator = (Tile tl) => new TileQEffect(tl).WithOncePerRoundEffectWhenCreatureBeginsTurnOrEnters(zone, async delegate (Creature cr)
+                        {
+                            if (cr == cr.Battle.ActiveCreature && cr.EnemyOf(qe.Owner))
+                            {
+                                CheckResult result = CommonSpellEffects.RollSpellSavingThrow(cr.Battle.ActiveCreature, spell, Defense.Will);
+                                if (result < CheckResult.Success)
+                                {
+                                    cr.Battle.ActiveCreature.AddQEffect(QEffect.Confused(false, spell)
+                                        .WithExpirationAtStartOfSourcesTurn(qe.Owner, 1)
+                                        .WithSourceAction(spell));
+                                }
+                                return true;
+                            }
+                            return false;
+                        });
+                    }))
+                    ;
                 });
             }), "Monarchs of the fey courts make their homes near places with strong ties to the First World, or in places where nymphs once held sway. They are drawn to animists who blend an appreciation for art and nature’s beauty with a ruler’s ambition. Monarchs of fey courts are vain, capricious, and do not easily forgive slights or poor manners.");
         yield return new Apparition(AnimistFeat.RevelerInLostGlee, AnimistFeat.RevelerInLostGleePrimary,
@@ -900,7 +893,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                             }
                             qe.Owner.AddQEffect(new QEffect(ExpirationCondition.ExpiresAtStartOfYourTurn)
                             {
-                                WhenExpires = qe => tiles.ForEach(tile => tile.QEffects.Where(qe => qe.TileQEffectId == AnimistQEffects.RiverCarvingMountains).ForEach(qe => qe.ExpiresAt = ExpirationCondition.Immediately))
+                                WhenExpires = qe => tiles.ForEach(tile => tile.RemoveAllQEffects(qe => qe.TileQEffectId == AnimistQEffects.RiverCarvingMountains))
                             });
                         }
                     }
@@ -964,11 +957,10 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         WhenExpires = (q) =>
                         {
                             q.Owner.RemoveAllQEffects(q => q == reactiveStrike);
-                            //TODO: UPDATE:
-                            //target.Proficiencies.SetExactly(Trait.Martial, oldProficiency);
+                            q.Owner.Proficiencies.SetExactly([Trait.Martial], oldProficiency);
                         }
                     }.WithSustaining(spell);
-                    target.Proficiencies.Set(Trait.Martial, target.Proficiencies.Get(Trait.Simple));
+                    target.Proficiencies.Set([Trait.Martial], target.Proficiencies.Get(Trait.Simple));
                     target.AddQEffect(qe);
                     target.AddQEffect(reactiveStrike);
                 });
@@ -976,7 +968,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
     }
 
     [FeatGenerator]
-    static IEnumerable<Feat> CreateFeats()
+    public static IEnumerable<Feat> CreateFeats()
     {
         foreach (var apparition in GetApparitions())
         {

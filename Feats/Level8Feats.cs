@@ -75,7 +75,7 @@ public static class Level8
                 "When you allow an apparition control over your body, it might vent its fury against your foes.",
                 "When you Relinquish Control, you add Grapple, Shove, and Trip to the list of actions you can take. You gain a +2 status bonus to the Athletics checks to attempt these actions.",
                 [AnimistTrait.Animist, AnimistTrait.Apparition])
-            //.WithPrerequisite(AnimistFeat.RelinquishControl, "Relinquish Control")
+            .WithPrerequisite(AnimistFeat.RelinquishControl, "Relinquish Control")
             .WithPermanentQEffectAndSameRulesText(q =>
             {
                 q.Id = AnimistQEffects.InstinctiveManeuvers;
