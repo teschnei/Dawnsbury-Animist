@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Modding;
-using HarmonyLib;
 
 namespace Dawnsbury.Mods.Classes.Animist;
 
@@ -34,8 +33,5 @@ public static class AnimistClassLoader
                 ModManager.AddFeat(feat);
             }
         }
-
-        var harmony = new Harmony("junabell.dawnsburydays.animist");
-        harmony.PatchAll();
     }
 }
