@@ -17,7 +17,7 @@ namespace Dawnsbury.Mods.Classes.Animist;
 
 public static class Animist
 {
-    [FeatGenerator]
+    [FeatGenerator(0)]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new ClassSelectionFeat(AnimistFeat.AnimistClass,

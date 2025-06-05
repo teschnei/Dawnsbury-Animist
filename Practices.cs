@@ -55,17 +55,19 @@ public class Practice : Feat
                     }
                 });
             });
-        yield return new Practice(AnimistFeat.Shaman,
-                "You form close bonds with your apparitions that allow you to invest them with the rare ability to take on a material form and directly affect the physical world.",
-                "{b}Invocation of Embodiment (1st):{/b} You allow your apparition to inhabit a physical form. You gain the Spirit Familiar feat. At 2nd level, you gain the Enhanced Familiar feat.",
-                [], null)
-            .WithOnSheet(sheet =>
+        /* TODO: familiars must come first
+    yield return new Practice(AnimistFeat.Shaman,
+            "You form close bonds with your apparitions that allow you to invest them with the rare ability to take on a material form and directly affect the physical world.",
+            "{b}Invocation of Embodiment (1st):{/b} You allow your apparition to inhabit a physical form. You gain the Spirit Familiar feat. At 2nd level, you gain the Enhanced Familiar feat.",
+            [], null)
+        .WithOnSheet(sheet =>
+        {
+            sheet.GrantFeat(AnimistFeat.SpiritFamiliar);
+            sheet.AddAtLevel(2, action =>
             {
-                sheet.GrantFeat(AnimistFeat.SpiritFamiliar);
-                sheet.AddAtLevel(2, action =>
-                {
-                    action.GrantFeat(AnimistFeat.EnhancedFamiliar);
-                });
+                action.GrantFeat(AnimistFeat.EnhancedFamiliar);
             });
+        });
+        */
     }
 }

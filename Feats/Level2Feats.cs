@@ -18,7 +18,7 @@ namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level2
 {
-    [FeatGenerator]
+    [FeatGenerator(2)]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.ConcealSpell, 2,

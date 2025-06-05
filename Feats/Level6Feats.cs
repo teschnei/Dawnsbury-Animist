@@ -24,7 +24,7 @@ namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level6
 {
-    [FeatGenerator]
+    [FeatGenerator(6)]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.WanderingFeat, 6,

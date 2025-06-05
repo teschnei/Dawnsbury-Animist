@@ -99,21 +99,18 @@ public class Apparition : Feat
                 for (var i = 0; i <= sheet.MaximumSpellLevel; ++i)
                 {
                     SpellId spellID = Spells[i];
-                    if (spellID != SpellId.None)
+                    // All Apparition Spells are signature spells 
+                    if (i > 0)
                     {
-                        // All Apparition Spells are signature spells 
-                        if (i > 0)
+                        for (var j = i; j <= sheet.MaximumSpellLevel; ++j)
                         {
-                            for (var j = i; j <= sheet.MaximumSpellLevel; ++j)
-                            {
-                                sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.Add(AllSpells.CreateModernSpellTemplate(spellID, AnimistTrait.Apparition, j));
-                            }
+                            sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.Add(AllSpells.CreateModernSpellTemplate(spellID, AnimistTrait.Apparition, j));
                         }
-                        else
-                        {
-                            // Except cantrips, of course
-                            sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.Add(AllSpells.CreateModernSpellTemplate(spellID, AnimistTrait.Apparition, 0));
-                        }
+                    }
+                    else
+                    {
+                        // Except cantrips, of course
+                        sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.Add(AllSpells.CreateModernSpellTemplate(spellID, AnimistTrait.Apparition, 0));
                     }
                 }
             });
@@ -140,13 +137,13 @@ public class Apparition : Feat
         return text;
     }
 
-    private static SpellId GetSpell(string name)
+    private static SpellId GetSpell(string name, SpellId backup)
     {
         if (ModManager.TryParse<SpellId>(name, out var spellId))
         {
             return spellId;
         }
-        return SpellId.None;
+        return backup;
     }
 
     public static IEnumerable<Apparition> GetApparitions()
@@ -176,11 +173,11 @@ public class Apparition : Feat
         yield return new Apparition(AnimistFeat.CustodianOfGrovesAndGardens, AnimistFeat.CustodianOfGrovesAndGardensPrimary,
             new List<SpellId>()
             {
-                GetSpell("TangleVine"),
-                GetSpell("ProtectorTree"),
-                GetSpell("GentleBreeze"),
-                GetSpell("SafePassage"),
-                GetSpell("PeacefulBubble"),
+                GetSpell("TangleVine", SpellId.Tanglefoot),
+                GetSpell("ProtectorTree", SpellId.ProtectorTree),
+                GetSpell("GentleBreeze", SpellId.Barkskin),
+                GetSpell("SafePassage", SpellId.PositiveAttunement),
+                GetSpell("PeacefulBubble", SpellId.TortoiseAndTheHare),
             },
             ModManager.RegisterNewSpell("GardenOfHealing", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -242,11 +239,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.EchoOfLostMoments, AnimistFeat.EchoOfLostMomentsPrimary,
             new List<SpellId>()
             {
-                GetSpell("Figment"),
-                GetSpell("DejaVu"),
-                GetSpell("DispelMagic"),
-                GetSpell("CurseOfLostTime"),
-                GetSpell("VisionOfDeath"),
+                GetSpell("Figment", SpellId.OpenDoor),
+                GetSpell("DejaVu", SpellId.Command),
+                GetSpell("DispelMagic", SpellId.LooseTimesArrow),
+                GetSpell("CurseOfLostTime", SpellId.CurseOfLostTime),
+                GetSpell("VisionOfDeath", SpellId.PhantasmalKiller),
             },
             ModManager.RegisterNewSpell("StoreTime", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -276,11 +273,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.ImposterInHiddenPlaces, AnimistFeat.ImposterInHiddenPlacesPrimary,
             new List<SpellId>()
             {
-                GetSpell("TelekineticHand"),
-                GetSpell("IllOmen"),
-                GetSpell("Invisibility"),
-                GetSpell("VeilOfPrivacy"),
-                GetSpell("LiminalDoorway"),
+                GetSpell("TelekineticHand", SpellId.TelekineticProjectile),
+                GetSpell("IllOmen", SpellId.IllOmen),
+                GetSpell("Invisibility", SpellId.Invisibility),
+                GetSpell("VeilOfPrivacy", SpellId.ImpendingDoom),
+                GetSpell("LiminalDoorway", SpellId.DimensionDoor),
             },
             ModManager.RegisterNewSpell("DiscomfitingWhispers", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -347,11 +344,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.LurkerInDevouringDark, AnimistFeat.LurkerInDevouringDarkPrimary,
             new List<SpellId>()
             {
-                GetSpell("CausticBlast"),
-                GetSpell("GrimTendrils"),
-                GetSpell("AcidGrip"),
-                GetSpell("AqueousOrb"),
-                GetSpell("GraspOfTheDeep"),
+                GetSpell("CausticBlast", SpellId.AcidSplash),
+                GetSpell("GrimTendrils", SpellId.GrimTendrils),
+                GetSpell("AcidGrip", SpellId.AcidArrow),
+                GetSpell("AqueousOrb", SpellId.SeaOfThought),
+                GetSpell("GraspOfTheDeep", SpellId.PhantasmalKiller),
             },
             ModManager.RegisterNewSpell("DevouringDarkForm", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -483,11 +480,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.MonarchOfTheFeyCourts, AnimistFeat.MonarchOfTheFeyCourtsPrimary,
             new List<SpellId>()
             {
-                GetSpell("TangleVine"),
-                GetSpell("Charm"),
-                GetSpell("CreateFood"),
-                GetSpell("Enthrall"),
-                GetSpell("Suggestion"),
+                GetSpell("TangleVine", SpellId.Tanglefoot),
+                GetSpell("Charm", SpellId.Command),
+                GetSpell("CreateFood", SpellId.Glitterdust),
+                GetSpell("Enthrall", SpellId.RoaringApplause),
+                GetSpell("Suggestion", SpellId.Sleep),
             },
             ModManager.RegisterNewSpell("NymphsGrace", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -541,11 +538,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.RevelerInLostGlee, AnimistFeat.RevelerInLostGleePrimary,
             new List<SpellId>()
             {
-                GetSpell("Prestidigitation"),
-                GetSpell("DizzyingColors"),
-                GetSpell("LaughingFit"),
-                GetSpell("Hypnotize"),
-                GetSpell("Confusion"),
+                GetSpell("Prestidigitation", SpellId.TelekineticProjectile),
+                GetSpell("DizzyingColors", SpellId.ColorSpray),
+                GetSpell("LaughingFit", SpellId.HideousLaughter),
+                GetSpell("Hypnotize", SpellId.ImpendingDoom),
+                GetSpell("Confusion", SpellId.Confusion),
             },
             ModManager.RegisterNewSpell("TrickstersMirrors", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -611,11 +608,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.StalkerInDarkenedBoughs, AnimistFeat.StalkerInDarkenedBoughsPrimary,
             new List<SpellId>()
             {
-                GetSpell("GougingClaw"),
-                GetSpell("RunicBody"),
-                GetSpell("VomitSwarm"),
-                GetSpell("WallOfThorns"),
-                GetSpell("BestialCurse"),
+                GetSpell("GougingClaw", SpellId.PhaseBolt),
+                GetSpell("RunicBody", SpellId.MagicFang),
+                GetSpell("VomitSwarm", SpellId.BoneSpray),
+                GetSpell("WallOfThorns", SpellId.StinkingCloud),
+                GetSpell("BestialCurse", SpellId.BestowCurse),
             },
             ModManager.RegisterNewSpell("DarkenedForestForm", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -787,11 +784,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.StewardOfStoneAndFire, AnimistFeat.StewardOfStoneAndFirePrimary,
             new List<SpellId>()
             {
-                GetSpell("Ignition"),
-                GetSpell("InterposingEarth"),
-                GetSpell("ExplodingEarth"),
-                GetSpell("Fireball"),
-                GetSpell("WallOfFire"),
+                GetSpell("Ignition", SpellId.ProduceFlame),
+                GetSpell("InterposingEarth", SpellId.PummelingRubble),
+                GetSpell("ExplodingEarth", SpellId.FlamingSphere),
+                GetSpell("Fireball", SpellId.Fireball),
+                GetSpell("WallOfFire", SpellId.WallOfFire),
             },
             ModManager.RegisterNewSpell("EarthsBile", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -846,11 +843,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.VanguardOfRoaringWaters, AnimistFeat.VanguardOfRoaringWatersPrimary,
             new List<SpellId>()
             {
-                GetSpell("RousingSplash"),
-                GetSpell("HydraulicPush"),
-                GetSpell("Mist"),
-                GetSpell("CrashingWave"),
-                GetSpell("HydraulicTorrent"),
+                GetSpell("RousingSplash", SpellId.RayOfFrost),
+                GetSpell("HydraulicPush", SpellId.HydraulicPush),
+                GetSpell("Mist", SpellId.ObscuringMist),
+                GetSpell("CrashingWave", SpellId.CrashingWave),
+                GetSpell("HydraulicTorrent", SpellId.HydraulicTorrent),
             },
             ModManager.RegisterNewSpell("RiverCarvingMountains", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -902,11 +899,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         yield return new Apparition(AnimistFeat.WitnessToAncientBattles, AnimistFeat.WitnessToAncientBattlesPrimary,
             new List<SpellId>()
             {
-                GetSpell("Shield"),
-                GetSpell("SureStrike"),
-                GetSpell("Enlarge"),
-                GetSpell("GhostlyWeapon"),
-                GetSpell("WeaponStorm"),
+                GetSpell("Shield", SpellId.Shield),
+                GetSpell("SureStrike", SpellId.TrueStrike),
+                GetSpell("Enlarge", SpellId.CladInMetal),
+                GetSpell("GhostlyWeapon", SpellId.DeflectCriticalHit),
+                GetSpell("WeaponStorm", SpellId.Stoneskin),
             },
             ModManager.RegisterNewSpell("EmbodimentOfBattle", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -967,7 +964,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
             }), "Witnesses to ancient battles may be the lingering remnants of soldiers who never returned from their last deployment or the restless souls of warriors whose final contest left them unfulfilled. Or the apparitions may be valkyries and other beings from beyond, naturally drawn to sites of death and battle, or even the unquiet entity formed from a battlefield that saw so much death and blood it gained a spiritual essence of its own. Witnesses to ancient battles are often somber and grim.");
     }
 
-    [FeatGenerator]
+    [FeatGenerator(0)]
     public static IEnumerable<Feat> CreateFeats()
     {
         foreach (var apparition in GetApparitions())

@@ -13,12 +13,21 @@ public static class AnimistClassLoader
     [AttributeUsage(AttributeTargets.Method)]
     public class FeatGeneratorAttribute : Attribute
     {
+        public int Level
+        {
+            get; set;
+        }
+        public FeatGeneratorAttribute(int level)
+        {
+            Level = level;
+        }
     }
 
     static IEnumerable<MethodInfo> GetFeatGenerators()
     {
         var a = typeof(AnimistClassLoader).Assembly.GetTypes().Where(x => x.IsClass).SelectMany(x => x.GetMethods())
-        .Where(x => x.GetCustomAttributes(typeof(FeatGeneratorAttribute), false).FirstOrDefault() != null);
+        .Where(x => x.GetCustomAttributes(typeof(FeatGeneratorAttribute), false).FirstOrDefault() != null)
+        .OrderBy(x => (x.GetCustomAttributes(typeof(FeatGeneratorAttribute), false).First() as FeatGeneratorAttribute)!.Level);
         return a;
     }
 

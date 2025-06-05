@@ -18,7 +18,7 @@ namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level4
 {
-    [FeatGenerator]
+    [FeatGenerator(4)]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.ApparitionsEnhancement, 4,

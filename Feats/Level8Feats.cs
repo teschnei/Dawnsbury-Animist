@@ -13,7 +13,7 @@ namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level8
 {
-    [FeatGenerator]
+    [FeatGenerator(8)]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.ApparitionsReflection, 8,

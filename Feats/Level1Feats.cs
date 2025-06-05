@@ -20,7 +20,7 @@ namespace Dawnsbury.Mods.Classes.Animist.Feats;
 
 public static class Level1
 {
-    [FeatGenerator]
+    [FeatGenerator(1)]
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.ApparitionSense, 1,
@@ -91,12 +91,19 @@ public static class Level1
                         .WithEffectOnSelf(async (action, self) =>
                         {
                             var choice = await self.AskForChoiceAmongButtons(IllustrationName.CircleOfProtection, "Choose a new primary apparition",
-                                   [.. from feat in self.PersistentCharacterSheet?.Calculated.AllFeats where feat.HasTrait(AnimistTrait.ApparitionAttuned) select feat.Name]);
-                            Apparition? chosenApparition = AllFeats.All.Where(feat => feat.Name == choice.Caption && feat is Apparition).FirstOrDefault() as Apparition;
-                            if (chosenApparition != null)
+                                   [.. from feat in self.PersistentCharacterSheet?.Calculated.AllFeats where feat.HasTrait(AnimistTrait.ApparitionAttuned) select feat.Name, "Cancel"]);
+                            if (choice.Caption == "Cancel")
                             {
-                                self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.FocusSpells.RemoveAll(spell => true);
-                                self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.WithSpells([chosenApparition.VesselSpell], self.PersistentCharacterSheet?.Calculated.MaximumSpellLevel ?? 0);
+                                action.RevertRequested = true;
+                            }
+                            else
+                            {
+                                Apparition? chosenApparition = AllFeats.All.Where(feat => feat.Name == choice.Caption && feat is Apparition).FirstOrDefault() as Apparition;
+                                if (chosenApparition != null)
+                                {
+                                    self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.FocusSpells.RemoveAll(spell => true);
+                                    self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.WithSpells([chosenApparition.VesselSpell], self.PersistentCharacterSheet?.Calculated.MaximumSpellLevel ?? 0);
+                                }
                             }
                         })
                     );
@@ -106,10 +113,11 @@ public static class Level1
                 "Your apparition takes over and shields you from outside influence.",
                 "Until the start of your next turn, you gain a +4 status bonus on saves against spells and effects that give you the controlled condition or attempt to influence your actions (such as charm, command, or a nosoi’s haunting melody). However, the only actions you can take are to Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action that has the apparition trait.\n{b}Special{/b} This feat requires a particularly strong bond with a specific apparition to learn. Choose one apparition you have access to; once you learn this feat, you must always choose that apparition as one of the apparitions you attune to each day.",
                 [AnimistTrait.Animist, AnimistTrait.Apparition],
-                AllFeats.All.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned)).ToList())
+                null)
             .WithActionCost(0)
             .WithOnSheet(sheet =>
             {
+                sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", 1, ft => ft.HasTrait(AnimistTrait.ApparitionAttuned)));
                 sheet.SelectionOptions.RemoveAll(option => option.Name == "Attuned Apparitions");
                 sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), sheet.CurrentLevel >= 7 ? 2 : 1));
             })
@@ -118,7 +126,7 @@ public static class Level1
                 q.ProvideMainAction = qe =>
                 {
                     return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.CircleOfProtection, "Relinquish Control", [AnimistTrait.Animist, AnimistTrait.Apparition],
-                            "Until the start of your next turn, you gain a +4 status bonus on saves against spells and effects that give you the controlled condition or attempt to influence your actions (such as charm, command, or a nosoi’s haunting melody). However, the only actions you can take are to Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action that has the apparition trait.\n{b}Special{/b} This feat requires a particularly strong bond with a specific apparition to learn. Choose one apparition you have access to; once you learn this feat, you must always choose that apparition as one of the apparitions you attune to each day.",
+                            "Until the start of your next turn, you gain a +4 status bonus on saves against spells and effects that give you the controlled condition or attempt to influence your actions (such as charm, command, or a nosoi’s haunting melody). However, the only actions you can take are to Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action that has the apparition trait.",
                             Target.Self(null))
                         .WithActionCost(0)
                         .WithEffectOnSelf(async (action, self) =>
