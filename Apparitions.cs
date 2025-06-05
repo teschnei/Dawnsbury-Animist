@@ -206,7 +206,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 })
                 .WithEffectOnSelf(async (spell, caster) =>
                 {
-                    var qe = new QEffect(spell.Name, "A Garden Of Healing restores hit points to allies in range when you Sustain it.", ExpirationCondition.ExpiresAtEndOfSourcesTurn, caster, IllustrationName.Heal)
+                    var qe = new QEffect(spell.Name, "A Garden Of Healing restores hit points to allies in range when you Sustain it.", ExpirationCondition.ExpiresAtEndOfSourcesTurn, caster, spell.Illustration)
                     {
                         WhenExpires = (qe) =>
                         {
@@ -259,7 +259,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 .WithActionCost(1)
                 .WithEffectOnEachTarget(async (spell, caster, target, checkResult) =>
                 {
-                    var qe = new QEffect(spell.Name, "Storing time for a bonus reaction for any animist or apparition reaction.", ExpirationCondition.ExpiresAtEndOfYourTurn, caster, IllustrationName.Slow)
+                    var qe = new QEffect(spell.Name, "Storing time for a bonus reaction for any animist or apparition reaction.", ExpirationCondition.ExpiresAtEndOfYourTurn, caster, spell.Illustration)
                     {
                         CannotExpireThisTurn = true,
                         StartOfYourEveryTurn = async (q, self) =>
@@ -296,7 +296,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 {
                     var aura = caster.AnimationData.AddAuraAnimation(IllustrationName.BaneCircle, 1);
                     aura.Color = Color.Purple;
-                    var qe = new QEffect(spell.Name, "An aura of spiteful murmurings may cause nearby creatures to reroll their first attack roll.", ExpirationCondition.ExpiresAtEndOfSourcesTurn, caster, IllustrationName.Heal)
+                    var qe = new QEffect(spell.Name, "An aura of spiteful murmurings may cause nearby creatures to reroll their first attack roll.", ExpirationCondition.ExpiresAtEndOfSourcesTurn, caster, spell.Illustration)
                     {
                         WhenExpires = qe => aura.MoveTo(0),
                         CannotExpireThisTurn = true
@@ -629,7 +629,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     new SpellVariant("shark", "Shark", IllustrationName.AnimalFormShark),
                     new SpellVariant("ape", "Ape", IllustrationName.AnimalFormApe)
                 }.Where(v => v.Id == "insect" || spellLevel >= 2).ToArray();
-                return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.MirrorImage,
+                return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.WildShape,
                     "Darkened Forest Form",
                     [AnimistTrait.Animist, Trait.Focus, Trait.Polymorph],
                     "Your apparition casts a feral shadow over your form.",
