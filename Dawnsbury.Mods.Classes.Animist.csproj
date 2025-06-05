@@ -3,6 +3,7 @@
         <!-- When we build for the main branch of Dawnsbury Days, we put V2 here; when building for the V3 branch, we put V3 here, and then we can refer 
         to this constant in source code to build different binaries for different versions of Dawnsbury Days. -->
         <DefineConstants>V3</DefineConstants>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
     <PropertyGroup>
         <!-- All mods must have this target framework, platform and platform target.-->

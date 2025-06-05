@@ -4,6 +4,7 @@ using Dawnsbury.Core.Creatures;
 using Dawnsbury.Core.Mechanics;
 using Dawnsbury.Core.Mechanics.Core;
 using Dawnsbury.Core.Mechanics.Enumerations;
+using Dawnsbury.Modding;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 
 namespace Dawnsbury.Mods.Classes.Animist.Practices;
@@ -47,7 +48,8 @@ public class Practice : Feat
                 {
                     BonusToDefenses = (qe, action, defense) =>
                     {
-                        if (action != null && action.Owner.HasTrait(Trait.Undead) && action.Owner.HasTrait(Trait.Incorporeal))
+                        if ((action != null) && ((action.Owner.HasTrait(Trait.Undead) && action.Owner.HasTrait(Trait.Incorporeal)) ||
+                                (ModManager.TryParse<Trait>("Haunt", out var haunt) && action.Owner.HasTrait(haunt))))
                         {
                             return new Bonus(1, BonusType.Status, "Invocation of Sight", true);
                         }
