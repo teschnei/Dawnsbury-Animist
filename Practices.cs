@@ -49,7 +49,7 @@ public class Practice : Feat
                     BonusToDefenses = (qe, action, defense) =>
                     {
                         if ((action != null) && ((action.Owner.HasTrait(Trait.Undead) && action.Owner.HasTrait(Trait.Incorporeal)) ||
-                                (ModManager.TryParse<Trait>("Haunt", out var haunt) && action.Owner.HasTrait(haunt))))
+                                (ModManager.TryParse<Trait>("Haunt", out var haunt) && (action.Owner.HasTrait(haunt) || action.HasTrait(haunt)))))
                         {
                             return new Bonus(1, BonusType.Status, "Invocation of Sight", true);
                         }

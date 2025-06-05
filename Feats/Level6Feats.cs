@@ -59,7 +59,7 @@ public static class Level6
                 "When a creature damages you with a melee attack, you gain resistance equal to your level against the triggering damage, and the triggering creature takes 1d6 fire damage and 1 persistent fire damage.",
                 [AnimistTrait.Apparition, Trait.Divine, Trait.Fire, AnimistTrait.Wandering])
             .WithActionCost(-2)
-            //.WithPrerequisite(new Prerequisite(sheet => sheet.HasFeat(AnimistFeat.StewardOfStoneAndFire) || sheet.HasFeat(AnimistFeat.WitnessToAncientBattles), "You must be attuned to either the Steward of Stone and Fire, or the Witness to Ancient Battles."))
+            .WithPrerequisite(new Prerequisite(sheet => sheet.HasFeat(AnimistFeat.StewardOfStoneAndFire) || sheet.HasFeat(AnimistFeat.WitnessToAncientBattles), "You must be attuned to either the Steward of Stone and Fire, or the Witness to Ancient Battles."))
             .WithPermanentQEffect("Your apparition grants you a fiery retaliation when you are damaged by a melee attack.", q =>
             {
                 q.YouAreDealtDamageEvent = async (qe, damageEvent) =>
@@ -115,7 +115,7 @@ public static class Level6
                 "Make a melee Strike against a creature within your reach. You gain a +2 circumstance bonus to your attack roll and deal an additional 2d6 void damage to the target; if the target is undead or otherwise has void healing, this Strike instead deals an additional 2d6 vitality damage. This ability gains the vitality trait if it deals vitality damage, or the void trait if it deals void damage.",
                 [AnimistTrait.Apparition, Trait.Divine, AnimistTrait.Wandering])
             .WithActionCost(2)
-            //.WithPrerequisite(new Prerequisite(sheet => sheet.HasFeat(AnimistFeat.ImposterInHiddenPlaces) || sheet.HasFeat(AnimistFeat.WitnessToAncientBattles), "You must be attuned to either the Imposter in Hidden Places, or the Witness to Ancient Battles."))
+            .WithPrerequisite(new Prerequisite(sheet => sheet.HasFeat(AnimistFeat.ImposterInHiddenPlaces) || sheet.HasFeat(AnimistFeat.WitnessToAncientBattles), "You must be attuned to either the Imposter in Hidden Places, or the Witness to Ancient Battles."))
             .WithPermanentQEffect("You can channel the spiritual power of spiteful grudges into an attack that deals bonus damage.", q =>
             {
                 q.ProvideStrikeModifier = item =>
@@ -160,7 +160,7 @@ public static class Level6
                 "You Stride twice. At any point during this movement, you can Shove up to two creatures you pass adjacent to. When you end the movement, the turbulent spirits you're attuned to reward you for acting in an appropriately fierce manner: you and each ally in a 30-foot emanation gain temporary Hit Points equal to half your level if you successfully Shoved at least one enemy, or equal to your level if you succeeded at Shoving both.",
                 [AnimistTrait.Apparition, Trait.Divine, AnimistTrait.Wandering])
             .WithActionCost(2)
-            //.WithPrerequisite(new Prerequisite(sheet => sheet.HasFeat(AnimistFeat.StewardOfStoneAndFire) || sheet.HasFeat(AnimistFeat.VanguardOfRoaringWaters), "You must be attuned to either the Steward of Stone and Fire, or the Vanguard of Roaring Waters."))
+            .WithPrerequisite(new Prerequisite(sheet => sheet.HasFeat(AnimistFeat.StewardOfStoneAndFire) || sheet.HasFeat(AnimistFeat.VanguardOfRoaringWaters), "You must be attuned to either the Steward of Stone and Fire, or the Vanguard of Roaring Waters."))
             .WithPermanentQEffect("Your apparition lets you Stride twice, attempt two Shoves, and rewards you with temporary Hit Points on successful Shoves.", q =>
             {
                 q.ProvideMainAction = qe =>

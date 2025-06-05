@@ -114,7 +114,7 @@ public class Apparition : Feat
                     }
                 }
             });
-        //WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
+        WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
     }
 
     private static string Ordinalize(int lvl)
