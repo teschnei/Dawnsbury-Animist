@@ -39,7 +39,7 @@ public static class Level1
             {
                 q.ProvideMainAction = qe =>
                 {
-                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.MagicWeapon, "Channeler's Stance", [AnimistTrait.Animist, Trait.Stance],
+                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.MagicWeapon, "Channeler's Stance", [AnimistTrait.Animist, Trait.Stance, Trait.Basic],
                             "You enter a stance that grants a status bonus equal to the spell's rank to apparition spells or vessel spells that deal energy damage, and to spells that have the vitality or void traits that restore Hit Points.",
                             Target.Self(null).WithAdditionalRestriction(self => self.HasEffect(AnimistQEffects.ChannelersStance) ? "You're already in this stance." : null))
                         .WithActionCost(1)
@@ -80,11 +80,11 @@ public static class Level1
                 "Choose another apparition from among those you’ve attuned to; it becomes your primary apparition, replacing your current one.",
                 [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Concentrate])
             .WithActionCost(1)
-            .WithPermanentQEffect("You instantly replace your primary apparition with another attuned apparition.", q =>
+            .WithPermanentQEffect("You can instantly replace your primary apparition with another attuned apparition.", q =>
             {
                 q.ProvideMainAction = qe =>
                 {
-                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.CircleOfProtection, "Circle Of Spirits", [AnimistTrait.Animist, Trait.Concentrate],
+                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.CircleOfProtection, "Circle Of Spirits", [AnimistTrait.Animist, Trait.Concentrate, Trait.Basic],
                             "Choose another apparition from among those you’ve attuned to; it becomes your primary apparition, replacing your current one.",
                             Target.Self(null))
                         .WithActionCost(1)
@@ -125,7 +125,7 @@ public static class Level1
             {
                 q.ProvideMainAction = qe =>
                 {
-                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.CircleOfProtection, "Relinquish Control", [AnimistTrait.Animist, AnimistTrait.Apparition],
+                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.Command, "Relinquish Control", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Basic],
                             "Until the start of your next turn, you gain a +4 status bonus on saves against spells and effects that give you the controlled condition or attempt to influence your actions (such as charm, command, or a nosoi’s haunting melody). However, the only actions you can take are to Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action that has the apparition trait.",
                             Target.Self(null))
                         .WithActionCost(0)
@@ -136,8 +136,9 @@ public static class Level1
                             {
                                 PreventTakingAction = action =>
                                 {
-                                    if (action.ActionId == ActionId.Step || action.ActionId == ActionId.Stride || action.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition ||
-                                        (action.ReferencedQEffect?.ReferencedSpell?.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition) ||
+                                    if (action.ActionId == ActionId.Step || action.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition ||
+                                        action.ReferencedQEffect?.ReferencedSpell?.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition ||
+                                        action.HasTrait(Trait.Strike) || action.ActionId == ActionId.Delay || action.ActionId == ActionId.EndTurn ||
                                         (self.HasEffect(AnimistQEffects.InstinctiveManeuvers) && (action.ActionId == ActionId.Grapple || action.ActionId == ActionId.Shove || action.ActionId == ActionId.Trip)))
                                     {
                                         return null;

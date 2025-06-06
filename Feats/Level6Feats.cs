@@ -116,7 +116,7 @@ public static class Level6
                 [AnimistTrait.Apparition, Trait.Divine, AnimistTrait.Wandering])
             .WithActionCost(2)
             .WithPrerequisite(new Prerequisite(sheet => sheet.HasFeat(AnimistFeat.ImposterInHiddenPlaces) || sheet.HasFeat(AnimistFeat.WitnessToAncientBattles), "You must be attuned to either the Imposter in Hidden Places, or the Witness to Ancient Battles."))
-            .WithPermanentQEffect("You can channel the spiritual power of spiteful grudges into an attack that deals bonus damage.", q =>
+            .WithPermanentQEffect(null, q =>
             {
                 q.ProvideStrikeModifier = item =>
                 {
@@ -165,7 +165,7 @@ public static class Level6
             {
                 q.ProvideMainAction = qe =>
                 {
-                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.FleetStep, "Roaring Heart", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Divine, Trait.Move],
+                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.HydraulicTorrent, "Roaring Heart", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Divine, Trait.Move],
                             "You Stride twice. At any point during this movement, you can Shove up to two creatures you pass adjacent to. When you end the movement, the turbulent spirits you're attuned to reward you for acting in an appropriately fierce manner: you and each ally in a 30-foot emanation gain temporary Hit Points equal to half your level if you successfully Shoved at least one enemy, or equal to your level if you succeeded at Shoving both.",
                             Target.Self())
                         .WithActionCost(2)

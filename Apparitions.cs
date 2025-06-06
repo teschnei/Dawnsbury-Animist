@@ -516,7 +516,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     .WithSustaining(spell)
                     .WithZone(ZoneAttachment.Aura(2), (qe, zone) =>
                     {
-                        zone.TileEffectCreator = (Tile tl) => new TileQEffect(tl).WithOncePerRoundEffectWhenCreatureBeginsTurnOrEnters(zone, async delegate (Creature cr)
+                        zone.TileEffectCreator = (Tile tl) => new TileQEffect(tl).WithOncePerRoundEffectWhenCreatureBeginsTurnOrEnters(zone, async cr =>
                         {
                             if (cr == cr.Battle.ActiveCreature && cr.EnemyOf(qe.Owner))
                             {

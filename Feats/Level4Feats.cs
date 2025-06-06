@@ -26,11 +26,11 @@ public static class Level4
                 "Until the end of your turn, one wielded weapon or unarmed attack you have deals an extra 1d6 force damage and gains the divine trait, if it didn't have it already.",
                 [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Divine, Trait.Force])
             .WithActionCost(0)
-            .WithPermanentQEffect("Your apparition enhances one of your weapons using the residual power of a recently cast spell.", q =>
+            .WithPermanentQEffect("Your apparition enhances one of your weapons using the residual power of a recently cast spell. Until the end of your turn, one wielded weapon or unarmed attack you have deals an extra 1d6 force damage and gains the divine trait, if it didn't have it already.", q =>
             {
                 q.ProvideMainAction = qe =>
                 {
-                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.MagicWeapon, "Apparition's Enhancement", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Divine, Trait.Force],
+                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.Heroism, "Apparition's Enhancement", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Divine, Trait.Force, Trait.Basic],
                             "Spiritual power encases your weapon or unarmed attack. Until the end of your turn, one wielded weapon or unarmed attack you have deals an extra 1d6 force damage and gains the divine trait, if it didn't have it already.",
                             Target.Self(null).WithAdditionalRestriction(self =>
                             {
@@ -84,12 +84,12 @@ public static class Level4
                 [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Aura])
             .WithActionCost(1)
             .WithPrerequisite(AnimistFeat.ChannelersStance, "Channeler's Stance")
-            .WithPermanentQEffect("Your apparition uses excess energy from its spell to protect you.", q =>
+            .WithPermanentQEffect("Your apparition uses excess energy from its spell to protect you. You and all adjacent allies gain a +1 status bonus to your AC and to your Reflex saving throws until the start of your next turn.", q =>
             {
                 q.ProvideMainAction = qe =>
                 {
-                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.MagicWeapon, "Channeled Protection", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Aura],
-                            "You enter a stance that grants a status bonus equal to the spell's rank to apparition spells or vessel spells that deal energy damage, and to spells that have the vitality or void traits that restore Hit Points.",
+                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.ForbiddingWard, "Channeled Protection", [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Aura, Trait.Basic],
+                            "Your apparition uses excess energy to protect you. You and all adjacent allies gain a +1 status bonus to your AC and to your Reflex saving throws until the start of your next turn.",
                             Target.Self(null).WithAdditionalRestriction(self =>
                             {
                                 var lastAction = self.Actions.ActionHistoryThisEncounter.Where(a => a.SpentActions > 0 || a.ActionCost > 0).LastOrDefault();
