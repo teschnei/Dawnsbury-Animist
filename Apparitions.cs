@@ -523,9 +523,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                                 CheckResult result = CommonSpellEffects.RollSpellSavingThrow(cr.Battle.ActiveCreature, spell, Defense.Will);
                                 if (result < CheckResult.Success)
                                 {
-                                    cr.Battle.ActiveCreature.AddQEffect(QEffect.Confused(false, spell)
-                                        .WithExpirationAtStartOfSourcesTurn(qe.Owner, 1)
-                                        .WithSourceAction(spell));
+                                    var confused = QEffect.Confused(false, spell)
+                                            .WithExpirationAtStartOfSourcesTurn(qe.Owner, 1)
+                                            .WithSourceAction(spell);
+                                    confused.Description = "You're flat-footed, you can't use reactions and you can't cast non-cantrip spells.\n\nYou consider everyone to be your enemy except the source and you use all your actions to attack other creatures.\n\nYou still provide flanking to creatures who consider you an ally.";
+                                    cr.Battle.ActiveCreature.AddQEffect(confused);
                                 }
                                 return true;
                             }

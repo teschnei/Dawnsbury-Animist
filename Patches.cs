@@ -1,11 +1,13 @@
 
 using System;
 using System.Linq;
+using Dawnsbury.Core.CharacterBuilder.Spellcasting;
 using Dawnsbury.Core.CombatActions;
 using Dawnsbury.Core.Creatures;
 using Dawnsbury.Core.Mechanics;
 using Dawnsbury.Core.Mechanics.Core;
 using Dawnsbury.Core.Mechanics.Enumerations;
+using Dawnsbury.Modding;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using HarmonyLib;
 
@@ -119,6 +121,22 @@ static class ApparitionsReflectionPatch
                 }
             }
             animistsReflection.Tag = null;
+        }
+    }
+}
+
+[HarmonyPatch(typeof(Creature), nameof(Creature.EnemyOf))]
+static class NymphsGracePatch
+{
+    static void Postfix(Creature anotherCreature, ref bool __result, Creature __instance)
+    {
+        if (ModManager.TryParse<SpellId>("NymphsGrace", out var spellid))
+        {
+            var confused = anotherCreature.QEffects.Where(q => q.Id == QEffectId.Confused).FirstOrDefault();
+            if (confused?.SourceAction?.SpellId == spellid && confused?.Source == __instance)
+            {
+                __result = false;
+            }
         }
     }
 }
