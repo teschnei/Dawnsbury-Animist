@@ -117,7 +117,7 @@ public static class Level1
             .WithActionCost(0)
             .WithOnSheet(sheet =>
             {
-                sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", 1, ft => ft.HasTrait(AnimistTrait.ApparitionAttuned)));
+                sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", -1, ft => ft.HasTrait(AnimistTrait.ApparitionAttuned)));
                 sheet.SelectionOptions.RemoveAll(option => option.Name == "Attuned Apparitions");
                 sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), sheet.CurrentLevel >= 7 ? 2 : 1));
             })

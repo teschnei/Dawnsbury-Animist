@@ -567,8 +567,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         CannotExpireThisTurn = true
                     }.WithSustaining(spell, async q =>
                     {
-                        var qe = q.Owner.QEffects.Where(q => q.Id == QEffectId.MirrorImage && q.ReferencedSpell == spell).FirstOrDefault();
-                        if (qe != null)
+                        if (q.Owner.QEffects.Where(q => q.Id == QEffectId.MirrorImage && q.ReferencedSpell == spell).FirstOrDefault() is { } qe)
                         {
                             qe.Value = Math.Min(qe.Value + 1, 3);
                         }

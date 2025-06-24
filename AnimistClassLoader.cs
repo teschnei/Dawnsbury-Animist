@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Dawnsbury.Core.CharacterBuilder.Feats;
+using Dawnsbury.Display.Controls.Statblocks;
 using Dawnsbury.Modding;
+using Dawnsbury.Mods.Classes.Animist.Apparitions;
+using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using HarmonyLib;
 
 namespace Dawnsbury.Mods.Classes.Animist;
@@ -46,5 +49,20 @@ public static class AnimistClassLoader
 
         var harmony = new Harmony("junabell.dawnsburydays.animist");
         harmony.PatchAll();
+
+        CreatureStatblock.CreatureStatblockSectionGenerators.Insert(CreatureStatblock.CreatureStatblockSectionGenerators.FindIndex(i => i.Name == "Impulses"),
+            new("Apparitions", cr => String.Join("\n",
+                String.Join("\n",
+                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats
+                    where f.HasTrait(AnimistTrait.ApparitionPrimary)
+                    select $"{{b}}{f.DisplayName(cr.PersistentCharacterSheet!)}{{/b}}"
+                ),
+                String.Join("\n",
+                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats
+                    where f.HasTrait(AnimistTrait.ApparitionAttuned) && cr.PersistentCharacterSheet?.Calculated.AllFeats.Where(p => p is Apparition apparition && apparition.AttunedFeat == f).Count() == 0
+                    select $"{f.DisplayName(cr.PersistentCharacterSheet!)}"
+                )
+            ))
+        );
     }
 }
