@@ -53,12 +53,12 @@ public static class AnimistClassLoader
         CreatureStatblock.CreatureStatblockSectionGenerators.Insert(CreatureStatblock.CreatureStatblockSectionGenerators.FindIndex(i => i.Name == "Impulses"),
             new("Apparitions", cr => String.Join("\n",
                 String.Join("\n",
-                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats
+                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats ?? []
                     where f.HasTrait(AnimistTrait.ApparitionPrimary)
                     select $"{{b}}{f.DisplayName(cr.PersistentCharacterSheet!)}{{/b}}"
                 ),
                 String.Join("\n",
-                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats
+                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats ?? []
                     where f.HasTrait(AnimistTrait.ApparitionAttuned) && cr.PersistentCharacterSheet?.Calculated.AllFeats.Where(p => p is Apparition apparition && apparition.AttunedFeat == f).Count() == 0
                     select $"{f.DisplayName(cr.PersistentCharacterSheet!)}"
                 )
