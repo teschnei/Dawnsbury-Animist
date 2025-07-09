@@ -77,7 +77,7 @@ public static class Level1
             });
         yield return new TrueFeat(AnimistFeat.CircleOfSpirits, 1,
                 "With a thought, word, or gesture, you reach your mind out to another spirit.",
-                "Choose another apparition from among those you’ve attuned to; it becomes your primary apparition, replacing your current one.",
+                "Choose another apparition from among those you’ve attuned to; it becomes your primary apparition, replacing your current one.\n{b}Special{/b} The number of Focus Points in your focus pool is equal to the number of focus spells you have or the number of apparitions you are attuned to, whichever is higher (maximum 3).",
                 [AnimistTrait.Animist, AnimistTrait.Apparition, Trait.Concentrate])
             .WithActionCost(1)
             .WithPermanentQEffect("You can instantly replace your primary apparition with another attuned apparition.", q =>
@@ -108,6 +108,10 @@ public static class Level1
                         })
                     );
                 };
+            })
+            .WithOnSheet(sheet =>
+            {
+                sheet.AtEndOfRecalculation += sheet2 => sheet2.FocusPointCount = sheet2.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned)).Count();
             });
         yield return new TrueFeat(AnimistFeat.RelinquishControl, 1,
                 "Your apparition takes over and shields you from outside influence.",
@@ -119,7 +123,8 @@ public static class Level1
             {
                 sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", -1, ft => ft.HasTrait(AnimistTrait.ApparitionAttuned)));
                 sheet.SelectionOptions.RemoveAll(option => option.Name == "Attuned Apparitions");
-                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), sheet.CurrentLevel >= 7 ? 2 : 1));
+                int count = sheet.AllFeatNames.Contains(AnimistFeat.ThirdApparition) ? 2 : 1;
+                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count));
             })
             .WithPermanentQEffect("You gain a +4 status bonus on saves against controlling effects, but you can only take the Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action with the apparition trait.  In addition, you must select one apparition to be your bonded apparition, that will always be one of your attuned apparitions.", q =>
             {

@@ -20,6 +20,18 @@ public static class Animist
     [FeatGenerator(0)]
     public static IEnumerable<Feat> CreateFeats()
     {
+        yield return new Feat(AnimistFeat.ThirdApparition,
+                "You've learned to shelter more spirits, gaining access to more magic.",
+                "When you attune to apparitions during your daily preparations, you choose three apparitions to attune to, with one of them being your primary apparition. The number of Focus Points in your focus pool increases by 1 (maximum 3).",
+                [],
+                null)
+            .WithOnSheet(sheet =>
+            {
+                sheet.FocusPointCount++;
+                sheet.SelectionOptions.RemoveAll(option => option.Name == "Attuned Apparitions");
+                int count = sheet.AllFeatNames.Contains(AnimistFeat.RelinquishControl) ? 2 : 3;
+                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count));
+            });
         yield return new ClassSelectionFeat(AnimistFeat.AnimistClass,
                 "You are the interlocutor between the seen and unseen, the voice that connects the mortal and the spiritual. You bond with spirits, manifesting their distinct magic and allowing their knowledge to flow through you. You may favor apparitions that grant you healing magic, others that grant you spells of destructive power, or pick and choose between different apparitions as your environment and circumstances demand. You may consider your powers part of a sacred trust or see your unique abilities as a sign that you’ve been chosen as a champion of two worlds. Whether you advocate for mortals in the planes beyond or whether you represent the spirits’ interests, you provide the bridge between realms.",
                 AnimistTrait.Animist,
@@ -86,6 +98,7 @@ You also gain one spell slot that can be used to cast any apparition spell once 
 
                 sheet.AddAtLevel(7, values =>
                 {
+                    values.GrantFeat(AnimistFeat.ThirdApparition);
                     values.SetProficiency(Trait.Spell, Proficiency.Expert);
                     values.PreparedSpells[AnimistTrait.Animist].Slots.Add(new FreePreparedSpellSlot(4, "AnimistSlot4-1"));
                     values.SpellRepertoires[AnimistTrait.Apparition].SpellSlots[0] = 3;
