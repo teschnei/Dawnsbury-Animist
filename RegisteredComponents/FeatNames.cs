@@ -12,10 +12,14 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly FeatName Seer = ModManager.RegisterFeatName("Seer");
         public static readonly FeatName Shaman = ModManager.RegisterFeatName("Shaman");
 
-        public static readonly FeatName InvocationOfSight = ModManager.RegisterFeatName("InvocationOfSight", "Invocation of Sight");
-        public static readonly FeatName InvocationOfUnity = ModManager.RegisterFeatName("InvocationOfUnity", "Invocation of Unity");
         public static readonly FeatName SongOfInvocation = ModManager.RegisterFeatName("SongOfInvocation", "Song of Invocation");
+        public static readonly FeatName DancingInvocation = ModManager.RegisterFeatName("DancingInvocation", "Dancing Invocation");
+        public static readonly FeatName InvocationOfUnity = ModManager.RegisterFeatName("InvocationOfUnity", "Invocation of Unity");
+        public static readonly FeatName DualInvocation = ModManager.RegisterFeatName("DualInvocation", "Dual Invocation");
+        public static readonly FeatName InvocationOfSight = ModManager.RegisterFeatName("InvocationOfSight", "Invocation of Sight");
+        public static readonly FeatName InvocationOfProtection = ModManager.RegisterFeatName("InvocationOfProtection", "Invocation of Protection");
         public static readonly FeatName InvocationOfEmbodiment = ModManager.RegisterFeatName("InvocationOfEmbodiment", "Invocation of Embodiment");
+        public static readonly FeatName InvocationOfGrowth = ModManager.RegisterFeatName("InvocationOfGrowth", "Invocation of Growth");
         //Apparitions
         public static readonly FeatName CrafterInTheVault = ModManager.RegisterFeatName("Crafter In The Vault");
         public static readonly FeatName CustodianOfGrovesAndGardens = ModManager.RegisterFeatName("Custodian Of Groves And Gardens");

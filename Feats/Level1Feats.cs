@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dawnsbury.Core;
@@ -111,7 +112,7 @@ public static class Level1
             })
             .WithOnSheet(sheet =>
             {
-                sheet.AtEndOfRecalculation += sheet2 => sheet2.FocusPointCount = sheet2.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned)).Count();
+                sheet.AtEndOfRecalculation += sheet2 => sheet2.FocusPointCount = Math.Max(sheet2.FocusPointCount, sheet2.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned)).Count());
             });
         yield return new TrueFeat(AnimistFeat.RelinquishControl, 1,
                 "Your apparition takes over and shields you from outside influence.",

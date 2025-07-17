@@ -809,6 +809,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     self.AddQEffect(new QEffect(spell.Name, "Your apparition unleashes stone and fire whenever you Sustain this spell.", ExpirationCondition.ExpiresAtEndOfYourTurn, self, spell.Illustration)
                     {
                         CannotExpireThisTurn = true,
+                        ReferencedSpell = spell,
                         ProvideContextualAction = (QEffect qf) => (!qf.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name,
                         [
                             Trait.Concentrate,
