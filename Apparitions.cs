@@ -89,6 +89,8 @@ public class Apparition : Feat
         Skills = new List<Skill>();
         Spells = spells;
         VesselSpell = vesselSpell;
+        WithRulesBlockForSpell(vesselSpell);
+        WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration);
         WithOnSheet(sheet =>
         {
             sheet.AddFocusSpellAndFocusPoint(AnimistTrait.Apparition, Ability.Wisdom, VesselSpell);
@@ -113,7 +115,9 @@ public class Apparition : Feat
                         sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.Add(AllSpells.CreateModernSpellTemplate(spellID, AnimistTrait.Apparition, 0));
                     }
                 }
-            });
+            })
+            .WithRulesBlockForSpell(vesselSpell)
+            .WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration);
         WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
     }
 
@@ -415,6 +419,27 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                                     .WithEffectOnEachTarget(async delegate (CombatAction action, Creature grappler, Creature target, CheckResult checkResult)
                                     {
                                         await Possibilities.Grapple(grappler, target, checkResult);
+                                        var grappled = target.QEffects.FirstOrDefault(q => q.Id == QEffectId.Grappled && q.Source == grappler);
+                                        if (grappled != null)
+                                        {
+                                            //Override the grapple state check because the tentacle has Reach
+                                            grappled.StateCheck = grapple =>
+                                            {
+                                                if (!grapple.Source!.Actions.CanTakeActions() || grapple.Source.DistanceTo(grapple.Owner) > 2)
+                                                {
+                                                    grapple.ExpiresAt = ExpirationCondition.Immediately;
+                                                    grapple.Source.HeldItems.RemoveAll((Item hi) => hi.Grapplee == grapple.Owner);
+                                                }
+                                                else if (checkResult == CheckResult.CriticalSuccess)
+                                                {
+                                                    grapple.Owner.AddQEffect(QEffect.Restrained(grappler));
+                                                }
+                                                else
+                                                {
+                                                    grapple.Owner.AddQEffect(QEffect.Grabbed(grappler));
+                                                }
+                                            };
+                                        }
                                     });
                                 grapple.ChosenTargets = ChosenTargets.CreateSingleTarget(target);
                                 await grapple.WithActionCost(0).AllExecute();
