@@ -25,26 +25,29 @@ using Dawnsbury.Core.Mechanics.Treasure;
 using Dawnsbury.Core.Mechanics.Zoning;
 using Dawnsbury.Core.Roller;
 using Dawnsbury.Core.Tiles;
+using Dawnsbury.Display;
 using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Display.Text;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using Dawnsbury.Modding;
 using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
+using Dawnsbury.Mods.Familiars;
 
 namespace Dawnsbury.Mods.Classes.Animist.Apparitions;
 
 public static class Extensions
 {
-    public static QEffect WithSustaining(this QEffect qe, CombatAction spell, Func<QEffect, Task>? onSustain = null, string? additionalText = null)
+    public static QEffect WithSustaining(this QEffect qe, CombatAction spell, QEffectId apparitionDispersed, Func<QEffect, Task>? onSustain = null, string? additionalText = null)
     {
         qe.ReferencedSpell = spell;
         spell.ReferencedQEffect = qe;
-        qe.ProvideContextualAction = (QEffect qf) => (!qe.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name, new Trait[4]
+        qe.ProvideContextualAction = (QEffect qf) => (!qe.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name, new Trait[5]
         {
             Trait.Concentrate,
             Trait.SustainASpell,
             Trait.Basic,
-            Trait.DoesNotBreakStealth
+            Trait.DoesNotBreakStealth,
+            AnimistTrait.Apparition
         }, "The duration of " + spell.Name + " continues until the end of your next turn." + ((additionalText == null) ? "" : ("\n\n" + additionalText)), Target.Self((Creature self, AI ai) => ai.ShouldSustain(spell))
         .WithAdditionalRestriction(self =>
         {
@@ -52,9 +55,9 @@ public static class Extensions
             {
                 return "You do not have the primary apparition to sustain this spell.";
             }
-            if (self.HasEffect(AnimistQEffects.PrimaryApparitionBusy))
+            if (self.HasEffect(apparitionDispersed))
             {
-                return "Your primary apparition is currently busy.";
+                return $"Your {apparitionDispersed.HumanizeTitleCase2()} is currently dispersed.";
             }
             return null;
         }))
@@ -80,15 +83,19 @@ public static class Extensions
 
 public class Apparition : Feat
 {
+    public static List<Apparition> ApparitionLUT = new List<Apparition>();
     public List<Skill> Skills { get; set; }
     public List<SpellId> Spells { get; set; }
     public SpellId VesselSpell { get; set; }
     public Feat AttunedFeat;
-    public Apparition(FeatName attunedFeatName, FeatName primaryFeatName, List<SpellId> spells, SpellId vesselSpell, string flavorText) : base(primaryFeatName, flavorText, GenerateRulesText(spells, vesselSpell), [AnimistTrait.ApparitionPrimary], null)
+    public Feat FamiliarFeat;
+    public QEffectId DispersedQID;
+    public Apparition(FeatName attunedFeatName, FeatName primaryFeatName, FeatName familiarFeatName, QEffectId dispersed, List<SpellId> spells, SpellId vesselSpell, string flavorText) : base(primaryFeatName, flavorText, GenerateRulesText(spells, vesselSpell), [AnimistTrait.ApparitionPrimary], null)
     {
         Skills = new List<Skill>();
         Spells = spells;
         VesselSpell = vesselSpell;
+        DispersedQID = dispersed;
         WithRulesBlockForSpell(vesselSpell);
         WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration);
         WithOnSheet(sheet =>
@@ -118,7 +125,82 @@ public class Apparition : Feat
             })
             .WithRulesBlockForSpell(vesselSpell)
             .WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration);
+        FamiliarFeat = FamiliarFeats.CreateFamiliarFeat(attunedFeatName.HumanizeTitleCase2(), AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration, [])
+            .WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.")
+            .WithOnCreature(master =>
+            {
+                if (master.HasEffect(Familiar.QDeadFamiliar))
+                {
+                    master.AddQEffect(Disable(master));
+                }
+                return new QEffect()
+                {
+                    AfterYouAcquireEffect = async (q, gained) =>
+                    {
+                        if (gained.Id == Familiar.QFamiliarDeployed)
+                        {
+                            Familiar.GetFamiliar(master)?.AddQEffect(new QEffect()
+                            {
+                                Id = AnimistQEffects.SpiritFamiliar,
+                                WhenMonsterDies = q => master.AddQEffect(Disable(master)),
+                                Tag = attunedFeatName
+                            });
+                            q.ExpiresAt = ExpirationCondition.Immediately;
+                        }
+                    }
+                };
+            });
+        FamiliarFeat.Traits.Remove(FamiliarFeats.TFamiliar);
         WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
+        ApparitionLUT.Add(this);
+    }
+
+    public QEffect Disable(Creature source, string? name = null, string? desc = null)
+    {
+        string name2 = name ?? $"{AttunedFeat.FeatName.HumanizeTitleCase2()} dispersed";
+        string desc2 = desc ?? $"Your {AttunedFeat.FeatName.HumanizeTitleCase2()} has been dispersed, forbidding you from using its abilities.";
+
+        var familiar = Familiar.GetFamiliar(source);
+        if (familiar?.QEffects.Any(q => q.Id == AnimistQEffects.SpiritFamiliar && (FeatName)q.Tag! == AttunedFeat.FeatName) ?? false)
+        {
+            source.Battle.RemoveCreatureFromGame(familiar);
+        }
+
+        return new QEffect(name2, desc2, ExpirationCondition.Never, source, AllSpells.CreateModernSpellTemplate(VesselSpell, AnimistTrait.Apparition).Illustration)
+        {
+            Id = DispersedQID,
+            PreventTakingAction = action =>
+            {
+                if (action.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition)
+                {
+                    var apparitions = action.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned));
+                    if (apparitions?.Count() > 1)
+                    {
+                        if (Spells.Contains(action.SpellId) || action.SpellId == VesselSpell)
+                        {
+                            return desc2;
+                        }
+                    }
+                    else
+                    {
+                        return desc2;
+                    }
+                }
+                else if (action.HasTrait(AnimistTrait.Apparition))
+                {
+                    var apparitions = action.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned));
+                    if (apparitions?.Count() <= 1)
+                    {
+                        return desc2;
+                    }
+                    else if (action.ReferencedQEffect?.ReferencedSpell?.SpellId == VesselSpell)
+                    {
+                        return desc2;
+                    }
+                }
+                return null;
+            }
+        };
     }
 
     private static string Ordinalize(int lvl)
@@ -174,7 +256,7 @@ public class Apparition : Feat
             })
         };
         */
-        yield return new Apparition(AnimistFeat.CustodianOfGrovesAndGardens, AnimistFeat.CustodianOfGrovesAndGardensPrimary,
+        yield return new Apparition(AnimistFeat.CustodianOfGrovesAndGardens, AnimistFeat.CustodianOfGrovesAndGardensPrimary, AnimistFeat.CustodianOfGrovesAndGardensFamiliar, AnimistQEffects.CustodianOfGrovesAndGardensDispersed,
             new List<SpellId>()
             {
                 GetSpell("TangleVine", SpellId.Tanglefoot),
@@ -226,7 +308,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         },
                         CannotExpireThisTurn = true,
                         SpawnsAura = (qe) => caster.AnimationData.AddAuraAnimation(IllustrationName.BlessCircle, 2, Color.Green)
-                    }.WithSustaining(spell, async (qe) =>
+                    }.WithSustaining(spell, AnimistQEffects.CustodianOfGrovesAndGardensDispersed, async (qe) =>
                     {
                         foreach (Creature cr in qe.Owner.Battle.AllCreatures.Where((Creature cr) => cr.DistanceTo(qe.Owner) <= 2 && !cr.HasTrait(Trait.Object) && !cr.HasEffect(AnimistQEffects.GardenOfHealingImmunity)))
                         {
@@ -240,7 +322,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     caster.AddQEffect(qe);
                 });
             }), "Custodians of groves and gardens frequent tended greenery and farmlands cared for by loving stewards, and other places of reflection and restoration where green things grow. Some of these apparitions linger in the mortal realms not because they have lost their way, but because they believe they have already found Elysium. Others are the cultivated spiritual essence of the location itself. Custodians of groves and gardens are peaceful, quiet, and averse to conflict.Custodians of groves and gardens frequent tended greenery and farmlands cared for by loving stewards, and other places of reflection and restoration where green things grow. Some of these apparitions linger in the mortal realms not because they have lost their way, but because they believe they have already found Elysium. Others are the cultivated spiritual essence of the location itself. Custodians of groves and gardens are peaceful, quiet, and averse to conflict.");
-        yield return new Apparition(AnimistFeat.EchoOfLostMoments, AnimistFeat.EchoOfLostMomentsPrimary,
+        yield return new Apparition(AnimistFeat.EchoOfLostMoments, AnimistFeat.EchoOfLostMomentsPrimary, AnimistFeat.EchoOfLostMomentsFamiliar, AnimistQEffects.EchoOfLostMomentsDispersed,
             new List<SpellId>()
             {
                 GetSpell("Figment", SpellId.OpenDoor),
@@ -270,11 +352,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         {
                             q.Tag = null;
                         }
-                    }.WithSustaining(spell);
+                    }.WithSustaining(spell, AnimistQEffects.EchoOfLostMomentsDispersed);
                     caster.AddQEffect(qe);
                 });
             }), "Echoes of lost moments are apparitions born from memories that everyone has forgotten, often arising from fragmented pieces of magic and memory left behind by time-altering magic. They may even occur in response to significant temporal tampering, cleaning up fragments of time damaged by irresponsible magic. These apparitions are drawn to animists who are orderly and responsible, and they can give such hosts access to spells that alter a target’s timeline or removes them from the current timeline, reveal visions of past or future events, or even accelerate magical effects to a point in time where they have already ended.");
-        yield return new Apparition(AnimistFeat.ImposterInHiddenPlaces, AnimistFeat.ImposterInHiddenPlacesPrimary,
+        yield return new Apparition(AnimistFeat.ImposterInHiddenPlaces, AnimistFeat.ImposterInHiddenPlacesPrimary, AnimistFeat.ImposterInHiddenPlacesFamiliar, AnimistQEffects.ImposterInHiddenPlacesDispersed,
             new List<SpellId>()
             {
                 GetSpell("TelekineticHand", SpellId.TelekineticProjectile),
@@ -304,7 +386,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     {
                         WhenExpires = qe => aura.MoveTo(0),
                         CannotExpireThisTurn = true
-                    }.WithSustaining(spell, async (qe) =>
+                    }.WithSustaining(spell, AnimistQEffects.ImposterInHiddenPlacesDispersed, async (qe) =>
                     {
                         ApplyQEffect(spell, qe);
                     });
@@ -345,7 +427,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 });
             }), "Impostors in hidden places whisper in quiet corners where mortal voices rarely resound, hoarding secrets and pondering unknowable truths. They often bring misfortune to those who disturb them, though an animist who earns their trust will find that they make effective allies.");
-        yield return new Apparition(AnimistFeat.LurkerInDevouringDark, AnimistFeat.LurkerInDevouringDarkPrimary,
+        yield return new Apparition(AnimistFeat.LurkerInDevouringDark, AnimistFeat.LurkerInDevouringDarkPrimary, AnimistFeat.LurkerInDevouringDarkFamiliar, AnimistQEffects.LurkerInDevouringDarkDispersed,
             new List<SpellId>()
             {
                 GetSpell("CausticBlast", SpellId.AcidSplash),
@@ -401,7 +483,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                             CannotExpireThisTurn = true,
                             //TODO: grapple trait?
                             AdditionalUnarmedStrike = CommonItems.CreateNaturalWeapon(IllustrationName.Tentacle, "Tentacle", "1d8", DamageKind.Bludgeoning, [Trait.Reach])
-                        }.WithSustaining(spell, async q =>
+                        }.WithSustaining(spell, AnimistQEffects.LurkerInDevouringDarkDispersed, async q =>
                         {
                             Creature? target = await q.Owner.Battle.AskToChooseACreature(q.Owner,
                                     q.Owner.Battle.AllCreatures.Where(cr => cr.DistanceTo(q.Owner) <= 2 && cr.EnemyOf(q.Owner) && !cr.HasTrait(Trait.Object)),
@@ -460,7 +542,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         QEffect qEffect8 = form;
                         qEffect8.ProvideActionIntoPossibilitySection = null;
                         qEffect8.ExpiresAt = ExpirationCondition.ExpiresAtEndOfYourTurn;
-                        qEffect8.WithSustaining(spell, async q =>
+                        qEffect8.WithSustaining(spell, AnimistQEffects.LurkerInDevouringDarkDispersed, async q =>
                         {
                             Creature? target = await q.Owner.Battle.AskToChooseACreature(q.Owner,
                                     q.Owner.Battle.AllCreatures.Where(cr => cr.DistanceTo(q.Owner) <= 1 && cr.EnemyOf(q.Owner) && !cr.HasTrait(Trait.Object)),
@@ -502,7 +584,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 });
             }), "Lurkers in devouring dark are most often near old shipwrecks, deadly icebergs, and other places where ice and deep water are most prevalent.");
-        yield return new Apparition(AnimistFeat.MonarchOfTheFeyCourts, AnimistFeat.MonarchOfTheFeyCourtsPrimary,
+        yield return new Apparition(AnimistFeat.MonarchOfTheFeyCourts, AnimistFeat.MonarchOfTheFeyCourtsPrimary, AnimistFeat.MonarchOfTheFeyCourtsFamiliar, AnimistQEffects.MonarchOfTheFeyCourtsDispersed,
             new List<SpellId>()
             {
                 GetSpell("TangleVine", SpellId.Tanglefoot),
@@ -538,7 +620,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         },
                         SpawnsAura = q => q.Owner.AnimationData.AddAuraAnimation(IllustrationName.BlessCircle, 2, Color.Plum)
                     }
-                    .WithSustaining(spell)
+                    .WithSustaining(spell, AnimistQEffects.MonarchOfTheFeyCourtsDispersed)
                     .WithZone(ZoneAttachment.Aura(2), (qe, zone) =>
                     {
                         zone.TileEffectCreator = (Tile tl) => new TileQEffect(tl).WithOncePerRoundEffectWhenCreatureBeginsTurnOrEnters(zone, async cr =>
@@ -562,7 +644,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     ;
                 });
             }), "Monarchs of the fey courts make their homes near places with strong ties to the First World, or in places where nymphs once held sway. They are drawn to animists who blend an appreciation for art and nature’s beauty with a ruler’s ambition. Monarchs of fey courts are vain, capricious, and do not easily forgive slights or poor manners.");
-        yield return new Apparition(AnimistFeat.RevelerInLostGlee, AnimistFeat.RevelerInLostGleePrimary,
+        yield return new Apparition(AnimistFeat.RevelerInLostGlee, AnimistFeat.RevelerInLostGleePrimary, AnimistFeat.RevelerInLostGleeFamiliar, AnimistQEffects.RevelerInLostGleeDispersed,
             new List<SpellId>()
             {
                 GetSpell("Prestidigitation", SpellId.TelekineticProjectile),
@@ -590,7 +672,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     {
                         Id = AnimistQEffects.TrickstersMirrors,
                         CannotExpireThisTurn = true
-                    }.WithSustaining(spell, async q =>
+                    }.WithSustaining(spell, AnimistQEffects.RevelerInLostGleeDispersed, async q =>
                     {
                         if (q.Owner.QEffects.Where(q => q.Id == QEffectId.MirrorImage && q.ReferencedSpell == spell).FirstOrDefault() is { } qe)
                         {
@@ -631,7 +713,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 });
             }), "Revelers in lost glee are twisted apparitions that arise in desolate and abandoned places where people once found great joy. They take immense mirth in causing harm or discomfort to others and do not enjoy being attuned to animists who fail to laugh at their antics.");
-        yield return new Apparition(AnimistFeat.StalkerInDarkenedBoughs, AnimistFeat.StalkerInDarkenedBoughsPrimary,
+        yield return new Apparition(AnimistFeat.StalkerInDarkenedBoughs, AnimistFeat.StalkerInDarkenedBoughsPrimary, AnimistFeat.StalkerInDarkenedBoughsFamiliar, AnimistQEffects.StalkerInDarkenedBoughsDispersed,
             new List<SpellId>()
             {
                 GetSpell("GougingClaw", SpellId.PhaseBolt),
@@ -714,7 +796,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     form.ReferencedSpell = spell;
                     form.ExpiresAt = ExpirationCondition.ExpiresAtEndOfYourTurn;
                     form.CannotExpireThisTurn = true;
-                    form.WithSustaining(spell, async qe =>
+                    form.WithSustaining(spell, AnimistQEffects.StalkerInDarkenedBoughsDispersed, async qe =>
                     {
                         var choice = await qe.Owner.AskForChoiceAmongButtons(spell.Illustration, "Change into a different shape?", [.. from variant in variants select variant.Name, "Stay in current form"]);
                         var new_variant = variants.Where(variant => variant.Name == choice.Caption).First();
@@ -807,7 +889,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 }
             }), "Stalkers in darkened boughs make their homes in ancient forests and jungles unfriendly to humanoids and others who would exert control or influence over nature’s designs. These apparitions are drawn to animists who harbor violent thoughts or impulses but are more likely to linger with animists who can quell their hatred. Stalkers in darkened boughs are moody, impulsive, and prone to seeing things from the least charitable perspective.");
-        yield return new Apparition(AnimistFeat.StewardOfStoneAndFire, AnimistFeat.StewardOfStoneAndFirePrimary,
+        yield return new Apparition(AnimistFeat.StewardOfStoneAndFire, AnimistFeat.StewardOfStoneAndFirePrimary, AnimistFeat.StewardOfStoneAndFireFamiliar, AnimistQEffects.StewardOfStoneAndFireDispersed,
             new List<SpellId>()
             {
                 GetSpell("Ignition", SpellId.ProduceFlame),
@@ -835,7 +917,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     {
                         CannotExpireThisTurn = true,
                         ReferencedSpell = spell,
-                        ProvideContextualAction = (QEffect qf) => (!qf.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name,
+                        ProvideContextualAction = (QEffect qf) => (!qf.CannotExpireThisTurn) && !self.HasEffect(AnimistQEffects.StewardOfStoneAndFireDispersed) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name,
                         [
                             Trait.Concentrate,
                             Trait.SustainASpell,
@@ -867,7 +949,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     await CommonSpellEffects.DealBasicPersistentDamage(target, checkResult, $"{(spellLevel + 1) / 2}", DamageKind.Fire);
                 }
             }), "Stewards of stone and fire linger near volcanoes and deep places near the heart of the earth, hot springs where the water is too scorchingly hot to allow casual enjoyment, and other places where the barrier between fire and earth is thin or nonexistent, though particularly old rock formations, canyons, and other natural features of earth may also spawn or attract them. Stewards of stone and fire are quick to anger and slow to forget.");
-        yield return new Apparition(AnimistFeat.VanguardOfRoaringWaters, AnimistFeat.VanguardOfRoaringWatersPrimary,
+        yield return new Apparition(AnimistFeat.VanguardOfRoaringWaters, AnimistFeat.VanguardOfRoaringWatersPrimary, AnimistFeat.VanguardOfRoaringWatersFamiliar, AnimistQEffects.VanguardOfRoaringWatersDispersed,
             new List<SpellId>()
             {
                 GetSpell("RousingSplash", SpellId.RayOfFrost),
@@ -895,7 +977,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         CannotExpireThisTurn = true,
                         BonusToAllSpeeds = qe => new Bonus(2, BonusType.Status, "River Carving Mountains"),
                         IncreaseCover = (qe, action, cover) => (action.HasTrait(Trait.Ranged) && cover == CoverKind.None) ? CoverKind.Lesser : CoverKind.None,
-                    }.WithSustaining(spell, ApplyStride, "When you Sustain this spell, you can Stride up to your speed, while each square you pass through becomes difficult terrain.");
+                    }.WithSustaining(spell, AnimistQEffects.VanguardOfRoaringWatersDispersed, ApplyStride, "When you Sustain this spell, you can Stride up to your speed, while each square you pass through becomes difficult terrain.");
                     caster.AddQEffect(qe);
                     await ApplyStride(qe);
                     async Task ApplyStride(QEffect qe)
@@ -923,7 +1005,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 });
             }), "Vanguards of roaring waters are found where rivers carve their way through mountains, creating fearsome rapids. They can also be found near bays where rivers meet the sea and create turbulent breakers and unpredictable undertows, coastal reefs that tear the bottoms from unwary ships and isolate islands, or anywhere else where water becomes violent and difficult to navigate safely. Vanguards of roaring waters encourage chaos and are easily bored.");
-        yield return new Apparition(AnimistFeat.WitnessToAncientBattles, AnimistFeat.WitnessToAncientBattlesPrimary,
+        yield return new Apparition(AnimistFeat.WitnessToAncientBattles, AnimistFeat.WitnessToAncientBattlesPrimary, AnimistFeat.WitnessToAncientBattlesFamiliar, AnimistQEffects.WitnessToAncientBattlesDispersed,
             new List<SpellId>()
             {
                 GetSpell("Shield", SpellId.Shield),
@@ -983,7 +1065,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                             q.Owner.RemoveAllQEffects(q => q == reactiveStrike);
                             q.Owner.Proficiencies.SetExactly([Trait.Martial], oldProficiency);
                         }
-                    }.WithSustaining(spell);
+                    }.WithSustaining(spell, AnimistQEffects.WitnessToAncientBattlesDispersed);
                     target.Proficiencies.Set([Trait.Martial], target.Proficiencies.Get(Trait.Simple));
                     target.AddQEffect(qe);
                     target.AddQEffect(reactiveStrike);
@@ -998,6 +1080,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
         {
             yield return apparition;
             yield return apparition.AttunedFeat;
+            yield return apparition.FamiliarFeat;
         }
     }
 }

@@ -11,7 +11,9 @@ using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Mechanics.Targeting.TargetingRequirements;
 using Dawnsbury.Core.Mechanics.Targeting.Targets;
+using Dawnsbury.Mods.Classes.Animist.Apparitions;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
+using Dawnsbury.Mods.Familiars;
 using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 
 namespace Dawnsbury.Mods.Classes.Animist.Feats;
@@ -50,12 +52,20 @@ public static class Level2
                     from spellLevel in Enumerable.Range(1, sheet.MaximumSpellLevel)
                     select AllSpells.CreateModernSpellTemplate(spellid, AnimistTrait.Apparition, spellLevel)
             ));
-        /*
         yield return new TrueFeat(AnimistFeat.EnhancedFamiliar, 2,
-                "You are able to materialize more of your attuned apparition’s essence, creating a more powerful vessel for it to inhabit and aid you with.",
+                "You are able to materialize more of your attuned apparition's essence, creating a more powerful vessel for it to inhabit and aid you with.",
                 "You can select four familiar or master abilities, instead of two.",
-                [AnimistTrait.Animist]);
-        */
+                [AnimistTrait.Animist])
+            .WithPrerequisite(AnimistFeat.SpiritFamiliar, "Spirit Familiar")
+            .WithEquivalent(sheet => sheet.HasFeat(Familiars.ClassFeats.FNEnhancedFamiliar))
+            .WithOnSheet(sheet =>
+            {
+                var index = sheet.SelectionOptions.FindIndex(o => o.Key.EndsWith("FamiliarAbilities"));
+                if (index > 0)
+                {
+                    sheet.SelectionOptions[index] = FamiliarFeats.CreateFamiliarFeatsSelectionOption(sheet);
+                }
+            });
         yield return new TrueFeat(AnimistFeat.GraspingSpiritsSpell, 2,
                 "Gaining substance from your magic, your apparitions increase the range of your spells, which then pull your enemy closer.",
                 "If the next action you use is to Cast a Spell that has a range and targets one creature, increase that spell’s range by 30 feet. As is standard for increasing spell ranges, if the spell normally has a range of touch, you extend its range to 30 feet. In addition to the normal effects of the spell, your apparitions briefly take on semi-physical forms and attempt to drag the target toward you. The target must attempt a Fortitude saving throw against your spell DC; on a failure, it is pulled up to 30 feet directly toward you.",
@@ -152,9 +162,9 @@ public static class Level2
             .WithActionCost(1)
             .WithPermanentQEffect("You can increase the area of a spell.", qe =>
             {
-                qe.MetamagicProvider = new MetamagicProvider("Spiritual Expansion spell", delegate (CombatAction spell)
+                qe.MetamagicProvider = new MetamagicProvider("Spiritual Expansion spell", delegate (CombatAction originalSpell)
                 {
-                    CombatAction metamagicSpell = Spell.DuplicateSpell(spell).CombatActionSpell;
+                    CombatAction metamagicSpell = Spell.DuplicateSpell(originalSpell).CombatActionSpell;
                     if (metamagicSpell.ActionCost == 3 || metamagicSpell.ActionCost == -2)
                     {
                         return null;
@@ -212,6 +222,12 @@ public static class Level2
                         }
                         if (targetLine is EmanationTarget emanation)
                         {
+                            Apparition? apparition = qe.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionPrimary) && feat is Apparition apparition && !qe.Owner.HasEffect(apparition.DispersedQID)).FirstOrDefault() as Apparition;
+                            // No primary apparition available
+                            if (apparition == null)
+                            {
+                                return false;
+                            }
                             int oldRange = emanation.Range;
                             var oldDetermineRange = emanation.DetermineRange;
                             emanation.DetermineRange = target =>
@@ -227,20 +243,50 @@ public static class Level2
                             };
                             metamagicSpell.EffectOnChosenTargets += async (spell, caster, targets) =>
                             {
-                                caster.AddQEffect(new QEffect()
+                                var busy = apparition.Disable(caster, $"{apparition.Name} busy", $"Your {apparition.Name} is currently busy expanding {originalSpell.Name}.");
+                                busy.StateCheck = q =>
                                 {
-                                    Id = AnimistQEffects.PrimaryApparitionBusy,
-                                    StateCheck = q =>
+                                    //TODO: make sure this actually works?
+                                    if (spell.ReferencedQEffect != null && !q.Owner.HasEffect(spell.ReferencedQEffect))
+                                    {
+                                        q.ExpiresAt = ExpirationCondition.Immediately;
+                                    }
+                                };
+                                caster.AddQEffect(busy);
+                            };
+                            return true;
+                        }
+                        if (targetLine is SelfTarget selfTarget)
+                        {
+                            if (originalSpell.SpellId == SpellId.Bless || originalSpell.SpellId == SpellId.Bane)
+                            {
+                                Apparition? apparition = qe.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionPrimary) && feat is Apparition apparition && !qe.Owner.HasEffect(apparition.DispersedQID)).FirstOrDefault() as Apparition;
+                                // No primary apparition available
+                                if (apparition == null)
+                                {
+                                    return false;
+                                }
+                                metamagicSpell.EffectOnChosenTargets += async (spell, caster, targets) =>
+                                {
+                                    var busy = apparition.Disable(caster, $"{apparition.Name} busy", $"Your {apparition.Name} is currently busy expanding {originalSpell.Name}.");
+                                    busy.StateCheck = q =>
                                     {
                                         //TODO: make sure this actually works?
                                         if (spell.ReferencedQEffect != null && !q.Owner.HasEffect(spell.ReferencedQEffect))
                                         {
                                             q.ExpiresAt = ExpirationCondition.Immediately;
                                         }
+                                    };
+                                    caster.AddQEffect(busy);
+                                    var blessbane = caster.QEffects.Where(q => q.Name == "Bless" || q.Name == "Bane").FirstOrDefault();
+                                    if (blessbane != null && blessbane.Tag != null)
+                                    {
+                                        var (radius, disable) = ((int, bool))blessbane.Tag;
+                                        blessbane.Tag = (radius + 1, disable);
                                     }
-                                });
-                            };
-                            return true;
+                                };
+                                return true;
+                            }
                         }
                         if (targetLine is DependsOnActionsSpentTarget dependsOnActionsSpentTarget)
                         {

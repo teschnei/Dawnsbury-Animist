@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Dawnsbury.Core;
 using Dawnsbury.Core.CharacterBuilder.Feats;
-using Dawnsbury.Core.CharacterBuilder.FeatsDb;
 using Dawnsbury.Core.CharacterBuilder.FeatsDb.Kineticist;
 using Dawnsbury.Core.CharacterBuilder.Selections.Options;
 using Dawnsbury.Core.CharacterBuilder.Spellcasting;
@@ -99,7 +98,7 @@ public static class Level1
                             }
                             else
                             {
-                                Apparition? chosenApparition = AllFeats.All.Where(feat => feat.Name == choice.Caption && feat is Apparition).FirstOrDefault() as Apparition;
+                                Apparition? chosenApparition = Apparition.ApparitionLUT.Where(feat => feat.Name == choice.Caption).FirstOrDefault();
                                 if (chosenApparition != null)
                                 {
                                     self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.FocusSpells.RemoveAll(spell => true);
@@ -123,9 +122,9 @@ public static class Level1
             .WithOnSheet(sheet =>
             {
                 sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", -1, ft => ft.HasTrait(AnimistTrait.ApparitionAttuned)));
-                sheet.SelectionOptions.RemoveAll(option => option.Name == "Attuned Apparitions");
-                int count = sheet.AllFeatNames.Contains(AnimistFeat.ThirdApparition) ? 2 : 1;
-                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count));
+                var attunedIndex = sheet.SelectionOptions.FindIndex(option => option.Name == "Attuned Apparitions");
+                int count = sheet.AllFeatNames.Contains(AnimistFeat.RelinquishControl) ? 2 : 3;
+                sheet.SelectionOptions[attunedIndex] = new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count);
             })
             .WithPermanentQEffect("You gain a +4 status bonus on saves against controlling effects, but you can only take the Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action with the apparition trait.  In addition, you must select one apparition to be your bonded apparition, that will always be one of your attuned apparitions.", q =>
             {
@@ -173,15 +172,18 @@ public static class Level1
                     );
                 };
             });
-        /*
-                yield return new TrueFeat(AnimistFeat.SpiritFamiliar, 1,
-                        "You can dedicate a small amount of your life force to allow one of your apparitions to physically manifest as a familiar",
-                        "When you attune to your apparitions during your daily preparations, you can choose to dedicate a small amount of your life force to allow one of them to physically manifest as a familiar, which gains the spirit trait. If your familiar is slain or destroyed, you lose all other benefits from the apparition until you remanifest the familiar during your next daily preparations. If you disperse the apparition you have manifested as a familiar, the familiar is destroyed.",
-                        [AnimistTrait.Animist])
-                    .WithPermanentQEffect("You can dedicate a small amount of your life force to allow one of your apparitions to physically manifest as a familiar", q =>
-                    {
-
-                    });
-        */
+        yield return new TrueFeat(AnimistFeat.SpiritFamiliar, 1,
+                "You can dedicate a small amount of your life force to allow one of your apparitions to physically manifest as a familiar",
+                "When you attune to your apparitions during your daily preparations, you can choose to dedicate a small amount of your life force to allow one of them to physically manifest as a familiar, which gains the spirit trait. If your familiar is slain or destroyed, you lose all other benefits from the apparition until you remanifest the familiar during your next daily preparations. If you disperse the apparition you have manifested as a familiar, the familiar is destroyed.",
+                [AnimistTrait.Animist])
+            .WithEquivalent(sheet => sheet.HasFeat(Familiars.ClassFeats.FNFamiliar))
+            .WithOnSheet(sheet =>
+            {
+                var attunedApparitions = Apparition.ApparitionLUT.Where(apparition => sheet.AllFeats.Contains(apparition.AttunedFeat));
+                sheet.AddSelectionOption(new SingleFeatSelectionOption("Familiar", "Familiar", SelectionOption.MORNING_PREPARATIONS_LEVEL, feat =>
+                    attunedApparitions.Any(apparition => apparition?.FamiliarFeat == feat)
+                ));
+            })
+            .WithPermanentQEffect("You can dedicate a small amount of your life force to allow one of your apparitions to physically manifest as a familiar", q => { });
     }
 }

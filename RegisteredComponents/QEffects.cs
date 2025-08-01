@@ -17,13 +17,24 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly QEffectId TrickstersMirrors = ModManager.RegisterEnumMember<QEffectId>("Trickster's Mirrors");
 
         public static readonly QEffectId ChannelersStance = ModManager.RegisterEnumMember<QEffectId>("Channeler's Stance");
+        public static readonly QEffectId SpiritFamiliar = ModManager.RegisterEnumMember<QEffectId>("Spirit Familiar");
         public static readonly QEffectId ApparitionStabilization = ModManager.RegisterEnumMember<QEffectId>("Apparition Stabilization");
         public static readonly QEffectId BlazingSpiritUsed = ModManager.RegisterEnumMember<QEffectId>("Blazing Spirit Used");
         public static readonly QEffectId AnimistsReflectionUnholiness = ModManager.RegisterEnumMember<QEffectId>("Animist's Reflection Unholiness");
         public static readonly QEffectId AnimistsReflectionUsed = ModManager.RegisterEnumMember<QEffectId>("Animist's Reflection Used");
         public static readonly QEffectId InstinctiveManeuvers = ModManager.RegisterEnumMember<QEffectId>("Instinctive Maneuvers");
-        //TODO: probably need one for each apparition
-        public static readonly QEffectId PrimaryApparitionBusy = ModManager.RegisterEnumMember<QEffectId>("Apparition Busy");
+
+        public static readonly QEffectId CrafterInTheVaultDispersed = ModManager.RegisterEnumMember<QEffectId>("Crafter In The Vault Dispersed");
+        public static readonly QEffectId CustodianOfGrovesAndGardensDispersed = ModManager.RegisterEnumMember<QEffectId>("Custodian Of Groves And Gardens Dispersed");
+        public static readonly QEffectId EchoOfLostMomentsDispersed = ModManager.RegisterEnumMember<QEffectId>("Echo Of Lost Moments Dispersed");
+        public static readonly QEffectId ImposterInHiddenPlacesDispersed = ModManager.RegisterEnumMember<QEffectId>("Imposter In Hidden Places Dispersed");
+        public static readonly QEffectId LurkerInDevouringDarkDispersed = ModManager.RegisterEnumMember<QEffectId>("Lurker In Devouring Dark Dispersed");
+        public static readonly QEffectId MonarchOfTheFeyCourtsDispersed = ModManager.RegisterEnumMember<QEffectId>("Monarch Of The Fey Courts DisperseDispersed");
+        public static readonly QEffectId RevelerInLostGleeDispersed = ModManager.RegisterEnumMember<QEffectId>("Reveler In Lost Glee Dispersed");
+        public static readonly QEffectId StalkerInDarkenedBoughsDispersed = ModManager.RegisterEnumMember<QEffectId>("Stalker In Darkened Boughs Dispersed");
+        public static readonly QEffectId StewardOfStoneAndFireDispersed = ModManager.RegisterEnumMember<QEffectId>("Steward Of Stone And Fire Dispersed");
+        public static readonly QEffectId VanguardOfRoaringWatersDispersed = ModManager.RegisterEnumMember<QEffectId>("Vanguard Of Roaring Waters Dispersed");
+        public static readonly QEffectId WitnessToAncientBattlesDispersed = ModManager.RegisterEnumMember<QEffectId>("Witness To Ancient Battles Dispersed");
 
         public static readonly TileQEffectId RiverCarvingMountains = ModManager.RegisterEnumMember<TileQEffectId>("River Carving Mountains Tile");
     }

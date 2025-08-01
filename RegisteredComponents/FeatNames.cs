@@ -44,6 +44,18 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly FeatName StewardOfStoneAndFirePrimary = ModManager.RegisterFeatName("Steward Of Stone And Fire Primary", "Steward Of Stone And Fire");
         public static readonly FeatName VanguardOfRoaringWatersPrimary = ModManager.RegisterFeatName("Vanguard Of Roaring Waters Primary", "Vanguard Of Roaring Waters");
         public static readonly FeatName WitnessToAncientBattlesPrimary = ModManager.RegisterFeatName("Witness To Ancient Battles Primary", "Witness To Ancient Battles");
+        //Familiars
+        public static readonly FeatName CrafterInTheVaultFamiliar = ModManager.RegisterFeatName("Crafter In The Vault Familiar", "Crafter In The Vault");
+        public static readonly FeatName CustodianOfGrovesAndGardensFamiliar = ModManager.RegisterFeatName("Custodian Of Groves And Gardens Familiar", "Custodian Of Groves And Gardens");
+        public static readonly FeatName EchoOfLostMomentsFamiliar = ModManager.RegisterFeatName("Echo Of Lost Moments Familiar", "Echo Of Lost Moments");
+        public static readonly FeatName ImposterInHiddenPlacesFamiliar = ModManager.RegisterFeatName("Imposter In Hidden Places Familiar", "Imposter In Hidden Places");
+        public static readonly FeatName LurkerInDevouringDarkFamiliar = ModManager.RegisterFeatName("Lurker In Devouring Dark Familiar", "Lurker In Devouring Dark");
+        public static readonly FeatName MonarchOfTheFeyCourtsFamiliar = ModManager.RegisterFeatName("Monarch Of The Fey Courts Familiar", "Monarch Of The Fey Courts");
+        public static readonly FeatName RevelerInLostGleeFamiliar = ModManager.RegisterFeatName("Reveler In Lost Glee Familiar", "Reveler In Lost Glee");
+        public static readonly FeatName StalkerInDarkenedBoughsFamiliar = ModManager.RegisterFeatName("Stalker In Darkened Boughs Familiar", "Stalker In Darkened Boughs");
+        public static readonly FeatName StewardOfStoneAndFireFamiliar = ModManager.RegisterFeatName("Steward Of Stone And Fire Familiar", "Steward Of Stone And Fire");
+        public static readonly FeatName VanguardOfRoaringWatersFamiliar = ModManager.RegisterFeatName("Vanguard Of Roaring Waters Familiar", "Vanguard Of Roaring Waters");
+        public static readonly FeatName WitnessToAncientBattlesFamiliar = ModManager.RegisterFeatName("Witness To Ancient Battles Familiar", "Witness To Ancient Battles");
         //Features
         public static readonly FeatName ThirdApparition = ModManager.RegisterFeatName("Third Apparition");
         public static readonly FeatName WanderingFeat = ModManager.RegisterFeatName("Wandering Feat");
@@ -57,7 +69,7 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         // 2nd
         public static readonly FeatName ConcealSpell = ModManager.RegisterFeatName("Conceal Spell");
         public static readonly FeatName EmbodimentOfTheBalance = ModManager.RegisterFeatName("Embodiment Of The Balance");
-        public static readonly FeatName EnhancedFamiliar = ModManager.RegisterFeatName("Enhanced Familiar");
+        public static readonly FeatName EnhancedFamiliar = ModManager.RegisterFeatName("EnhancedFamiliarAnimist", "Enhanced Familiar");
         public static readonly FeatName GraspingSpiritsSpell = ModManager.RegisterFeatName("Grasping Spirits Spell");
         public static readonly FeatName SpiritualExpansionSpell = ModManager.RegisterFeatName("Spiritual Expansion Spell");
         // 4th
@@ -75,5 +87,7 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly FeatName InstinctiveManeuvers = ModManager.RegisterFeatName("Instinctive Maneuvers");
         public static readonly FeatName SpiritWalk = ModManager.RegisterFeatName("Spirit Walk");
         public static readonly FeatName WindSeeker = ModManager.RegisterFeatName("Wind Seeker");
+        // 10th
+        public static readonly FeatName IncredibleFamiliar = ModManager.RegisterFeatName("IncredibleFamiliarAnimist", "Incredible Familiar");
     }
 }

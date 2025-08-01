@@ -50,7 +50,8 @@ public static class AnimistClassLoader
         var harmony = new Harmony("junabell.dawnsburydays.animist");
         harmony.PatchAll();
 
-        CreatureStatblock.CreatureStatblockSectionGenerators.Insert(CreatureStatblock.CreatureStatblockSectionGenerators.FindIndex(i => i.Name == "Impulses"),
+        var index = CreatureStatblock.CreatureStatblockSectionGenerators.FindIndex(i => i.Name == "Impulses");
+        CreatureStatblock.CreatureStatblockSectionGenerators.Insert(index,
             new("Apparitions", cr => String.Join("\n",
                 String.Join("\n",
                     from f in cr.PersistentCharacterSheet?.Calculated.AllFeats ?? []
@@ -61,6 +62,15 @@ public static class AnimistClassLoader
                     from f in cr.PersistentCharacterSheet?.Calculated.AllFeats ?? []
                     where f.HasTrait(AnimistTrait.ApparitionAttuned) && cr.PersistentCharacterSheet?.Calculated.AllFeats.Where(p => p is Apparition apparition && apparition.AttunedFeat == f).Count() == 0
                     select $"{f.DisplayName(cr.PersistentCharacterSheet!)}"
+                )
+            ))
+        );
+        CreatureStatblock.CreatureStatblockSectionGenerators.Insert(index,
+            new("Invocations", cr => String.Join("\n",
+                String.Join("\n",
+                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats ?? []
+                    where f.HasTrait(AnimistTrait.Invocation)
+                    select $"{{b}}{f.DisplayName(cr.PersistentCharacterSheet!)}:{{/b}} {f.RulesText}"
                 )
             ))
         );

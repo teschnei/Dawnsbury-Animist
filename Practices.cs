@@ -18,14 +18,13 @@ public static class Practice
     [FeatGenerator(0)]
     public static IEnumerable<Feat> CreateFeats()
     {
-        yield return new Feat(AnimistFeat.SongOfInvocation, "", "", [], null)
+        yield return new Feat(AnimistFeat.SongOfInvocation, "You can sing out to the spirits to have them spin and twirl around you.", "You gain the Circle of Spirits feat.", [AnimistTrait.Invocation], null)
             .WithOnSheet(sheet =>
             {
                 sheet.GrantFeat(AnimistFeat.CircleOfSpirits);
-            })
-            .WithPermanentQEffect("You can sing out to the spirits to have them spin and twirl around you. You gain the Circle of Spirits feat.", delegate { });
-        yield return new Feat(AnimistFeat.DancingInvocation, "", "", [], null)
-            .WithPermanentQEffect("The movement of your body grants power to your magic. When you Leap, Step, or Tumble Through, you also Sustain an apparition spell or vessel spell.",
+            });
+        yield return new Feat(AnimistFeat.DancingInvocation, "The movement of your body grants power to your magic.", "When you Leap, Step, or Tumble Through, you also Sustain an apparition spell or vessel spell.", [AnimistTrait.Invocation], null)
+            .WithPermanentQEffect(null,
                 q =>
                 {
                     q.AfterYouTakeAction = async (q, action) =>
@@ -56,33 +55,31 @@ public static class Practice
                     };
                 });
 
-        yield return new Feat(AnimistFeat.InvocationOfUnity, "", "", [], null)
+        yield return new Feat(AnimistFeat.InvocationOfUnity, "The lines between your body and your apparition are blurry.", "You gain the Relinquish Control feat.", [AnimistTrait.Invocation], null)
             .WithOnSheet(sheet =>
             {
                 sheet.GrantFeat(AnimistFeat.RelinquishControl);
-            })
-            .WithPermanentQEffect("The lines between your body and your apparition are blurry. You gain the Relinquish Control feat.", delegate { });
-        yield return new Feat(AnimistFeat.DualInvocation, "", "", [], null)
-            .WithPermanentQEffect("You can build powerful bonds with multiple apparitions. You can select two of your attuned apparitions to be your primary apparitions. The number of Focus Points in your focus pool is equal to the number of focus spells you have or the number of primary apparitions you are attuned to, whichever is higher (maximum 3).", delegate { })
+            });
+        yield return new Feat(AnimistFeat.DualInvocation, "You can build powerful bonds with multiple apparitions.", "You can select two of your attuned apparitions to be your primary apparitions. The number of Focus Points in your focus pool is equal to the number of focus spells you have or the number of primary apparitions you are attuned to, whichever is higher (maximum 3).", [AnimistTrait.Invocation], null)
             .WithOnSheet(sheet =>
             {
-                sheet.SelectionOptions.RemoveAll(option => option.Name == "Primary Apparitions");
-                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistPrimaryApparition", "Primary Apparitions", SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, (ft, values) =>
+                var primaryIndex = sheet.SelectionOptions.FindIndex(option => option.Name == "Primary Apparitions");
+                sheet.SelectionOptions[primaryIndex] = new MultipleFeatSelectionOption("AnimistPrimaryApparition", "Primary Apparitions", SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, (ft, values) =>
                 {
                     if (ft is Apparition apparition)
                     {
                         return values.HasFeat(apparition.AttunedFeat);
                     }
                     return false;
-                }, 2));
+                }, 2);
                 sheet.AtEndOfRecalculation += sheet2 => sheet2.FocusPointCount = Math.Max(sheet2.FocusPointCount, 2);
             });
-        yield return new Feat(AnimistFeat.InvocationOfSight, "", "", [], null)
+        yield return new Feat(AnimistFeat.InvocationOfSight, "You shift your eyes easily to the spirit world, intuiting the needs of apparitions and other spiritual entities based on how they appear to you.", "You gain the Apparition Sense feat. You also gain a +1 status bonus to saving throws and AC against the effects of haunts and the abilities of spirits and incorporeal undead.", [AnimistTrait.Invocation], null)
             .WithOnSheet(sheet =>
             {
                 sheet.GrantFeat(AnimistFeat.ApparitionSense);
             })
-            .WithPermanentQEffect("You shift your eyes easily to the spirit world, intuiting the needs of apparitions and other spiritual entities based on how they appear to you. You gain the Apparition Sense feat. You also gain a +1 status bonus to saving throws and AC against the effects of haunts and the abilities of spirits and incorporeal undead.",
+            .WithPermanentQEffect(null,
                 q =>
                 {
                     q.BonusToDefenses = (qe, action, defense) =>
@@ -96,8 +93,8 @@ public static class Practice
                     };
                 }
             );
-        yield return new Feat(AnimistFeat.InvocationOfProtection, "", "", [], null)
-            .WithPermanentQEffect("Your status as an intermediary across planar boundaries grants you further defenses against spiritual ailments. You gain spirit resistance and void resistance equal to half your level, and your status bonus to saving throws and AC against the effect of haunts and the abilities of spirits and incorporeal undead increases to +2.",
+        yield return new Feat(AnimistFeat.InvocationOfProtection, "Your status as an intermediary across planar boundaries grants you further defenses against spiritual ailments", "You gain spirit resistance and void resistance equal to half your level, and your status bonus to saving throws and AC against the effect of haunts and the abilities of spirits and incorporeal undead increases to +2.", [AnimistTrait.Invocation], null)
+            .WithPermanentQEffect(null,
                 q =>
                 {
                     q.BonusToDefenses = (qe, action, defense) =>
@@ -117,6 +114,17 @@ public static class Practice
                     };
                 }
             );
+        yield return new Feat(AnimistFeat.InvocationOfEmbodiment, "You allow your apparition to inhabit a physical form.", "You gain the Spirit Familiar feat. At 2nd level, you gain the Enhanced Familiar feat.", [AnimistTrait.Invocation], null)
+            .WithOnSheet(sheet =>
+            {
+                sheet.GrantFeat(AnimistFeat.SpiritFamiliar);
+                sheet.AddAtLevel(2, action => action.GrantFeat(AnimistFeat.EnhancedFamiliar));
+            });
+        yield return new Feat(AnimistFeat.InvocationOfGrowth, "Your bond with the physical form of your chosen apparition grows stronger.", "You gain the Incredible Familiar feat.", [AnimistTrait.Invocation], null)
+            .WithOnSheet(sheet =>
+            {
+                sheet.GrantFeat(AnimistFeat.IncredibleFamiliar);
+            });
     }
 
     public static IEnumerable<Feat> GetPractices()
@@ -148,19 +156,14 @@ public static class Practice
                 sheet.GrantFeat(AnimistFeat.InvocationOfSight);
                 sheet.AddAtLevel(9, sheet2 => sheet2.GrantFeat(AnimistFeat.InvocationOfProtection));
             });
-        /* TODO: familiars must come first
-    yield return new Practice(AnimistFeat.Shaman,
-            "You form close bonds with your apparitions that allow you to invest them with the rare ability to take on a material form and directly affect the physical world.",
-            "{b}Invocation of Embodiment (1st):{/b} You allow your apparition to inhabit a physical form. You gain the Spirit Familiar feat. At 2nd level, you gain the Enhanced Familiar feat.",
-            [], null)
-        .WithOnSheet(sheet =>
-        {
-            sheet.GrantFeat(AnimistFeat.SpiritFamiliar);
-            sheet.AddAtLevel(2, action =>
+        yield return new Feat(AnimistFeat.Shaman,
+                "You form close bonds with your apparitions that allow you to invest them with the rare ability to take on a material form and directly affect the physical world.",
+                "{b}Invocation of Embodiment (1st):{/b} You allow your apparition to inhabit a physical form. You gain the Spirit Familiar feat. At 2nd level, you gain the Enhanced Familiar feat.\n{b}Invocation of Growth (9th):{/b} Your bond with the physical form of your chosen apparition grows stronger. You gain the Incredible Familiar feat.",
+                [], null)
+            .WithOnSheet(sheet =>
             {
-                action.GrantFeat(AnimistFeat.EnhancedFamiliar);
+                sheet.GrantFeat(AnimistFeat.InvocationOfEmbodiment);
+                sheet.AddAtLevel(9, action => action.GrantFeat(AnimistFeat.InvocationOfGrowth));
             });
-        });
-        */
     }
 }

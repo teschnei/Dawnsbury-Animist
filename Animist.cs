@@ -28,9 +28,9 @@ public static class Animist
             .WithOnSheet(sheet =>
             {
                 sheet.FocusPointCount++;
-                sheet.SelectionOptions.RemoveAll(option => option.Name == "Attuned Apparitions");
+                var attunedIndex = sheet.SelectionOptions.FindIndex(option => option.Name == "Attuned Apparitions");
                 int count = sheet.AllFeatNames.Contains(AnimistFeat.RelinquishControl) ? 2 : 3;
-                sheet.AddSelectionOption(new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count));
+                sheet.SelectionOptions[attunedIndex] = new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count);
             });
         yield return new ClassSelectionFeat(AnimistFeat.AnimistClass,
                 "You are the interlocutor between the seen and unseen, the voice that connects the mortal and the spiritual. You bond with spirits, manifesting their distinct magic and allowing their knowledge to flow through you. You may favor apparitions that grant you healing magic, others that grant you spells of destructive power, or pick and choose between different apparitions as your environment and circumstances demand. You may consider your powers part of a sacred trust or see your unique abilities as a sign that you’ve been chosen as a champion of two worlds. Whether you advocate for mortals in the planes beyond or whether you represent the spirits’ interests, you provide the bridge between realms.",
