@@ -123,7 +123,7 @@ public static class Level1
             {
                 sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", -1, ft => ft.HasTrait(AnimistTrait.ApparitionAttuned)));
                 var attunedIndex = sheet.SelectionOptions.FindIndex(option => option.Name == "Attuned Apparitions");
-                int count = sheet.AllFeatNames.Contains(AnimistFeat.RelinquishControl) ? 2 : 3;
+                int count = sheet.AllFeatNames.Contains(AnimistFeat.FourthApparition) ? 3 : sheet.AllFeatNames.Contains(AnimistFeat.ThirdApparition) ? 2 : 1;
                 sheet.SelectionOptions[attunedIndex] = new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count);
             })
             .WithPermanentQEffect("You gain a +4 status bonus on saves against controlling effects, but you can only take the Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action with the apparition trait.  In addition, you must select one apparition to be your bonded apparition, that will always be one of your attuned apparitions.", q =>

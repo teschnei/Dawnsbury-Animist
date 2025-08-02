@@ -58,6 +58,7 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly FeatName WitnessToAncientBattlesFamiliar = ModManager.RegisterFeatName("Witness To Ancient Battles Familiar", "Witness To Ancient Battles");
         //Features
         public static readonly FeatName ThirdApparition = ModManager.RegisterFeatName("Third Apparition");
+        public static readonly FeatName FourthApparition = ModManager.RegisterFeatName("Fourth Apparition");
         public static readonly FeatName WanderingFeat = ModManager.RegisterFeatName("Wandering Feat");
         //Feats
         // 1st
