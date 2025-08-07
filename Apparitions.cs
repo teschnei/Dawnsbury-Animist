@@ -17,6 +17,7 @@ using Dawnsbury.Core.Intelligence;
 using Dawnsbury.Core.Possibilities;
 using Dawnsbury.Core.Mechanics;
 using Dawnsbury.Core.Mechanics.Core;
+using Dawnsbury.Core.Mechanics.Damage;
 using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Mechanics.Targeting.TargetingRequirements;
@@ -41,14 +42,14 @@ public static class Extensions
     {
         qe.ReferencedSpell = spell;
         spell.ReferencedQEffect = qe;
-        qe.ProvideContextualAction = (QEffect qf) => (!qe.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name, new Trait[5]
-        {
+        qe.ProvideContextualAction = (QEffect qf) => (!qe.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name,
+        [
             Trait.Concentrate,
             Trait.SustainASpell,
             Trait.Basic,
             Trait.DoesNotBreakStealth,
             AnimistTrait.Apparition
-        }, "The duration of " + spell.Name + " continues until the end of your next turn." + ((additionalText == null) ? "" : ("\n\n" + additionalText)), Target.Self((Creature self, AI ai) => ai.ShouldSustain(spell))
+        ], "The duration of " + spell.Name + " continues until the end of your next turn." + ((additionalText == null) ? "" : ("\n\n" + additionalText)), Target.Self((Creature self, AI ai) => ai.ShouldSustain(spell))
         .WithAdditionalRestriction(self =>
         {
             if (!self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Exists(sp => sp.SpellId == spell.SpellId))
@@ -919,6 +920,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         ReferencedSpell = spell,
                         ProvideContextualAction = (QEffect qf) => (!qf.CannotExpireThisTurn) && !self.HasEffect(AnimistQEffects.StewardOfStoneAndFireDispersed) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name,
                         [
+                            ..spell.Traits.Except([Trait.Focus]),
                             Trait.Concentrate,
                             Trait.SustainASpell,
                             Trait.Basic,
@@ -933,6 +935,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         .WithProjectileCone(spell.Illustration, 15, Core.Animations.ProjectileKind.Cone)
                         .WithReferencedQEffect(qf)
                         .WithSpellSavingThrow(Defense.Reflex)
+                        .WithSpellInformation(spell.SpellLevel, "", null)
                         .WithEffectOnSelf(async (action, creature) =>
                         {
                             qf.CannotExpireThisTurn = true;
@@ -944,8 +947,8 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 .WithEffectOnEachTarget(ApplyDamage);
                 async Task ApplyDamage(CombatAction spell, Creature caster, Creature target, CheckResult checkResult)
                 {
-                    await CommonSpellEffects.DealBasicDamage(spell, caster, target, checkResult, $"{(spellLevel + 1) / 2}d4", DamageKind.Fire);
-                    await CommonSpellEffects.DealBasicDamage(spell, caster, target, checkResult, $"{(spellLevel + 1) / 2}d4", DamageKind.Bludgeoning);
+                    var diceFormula = DiceFormula.FromText($"{(spellLevel + 1) / 2}d4", spell.Name);
+                    await CommonSpellEffects.DealBasicDamage(spell, caster, target, checkResult, new KindedDamage(diceFormula, DamageKind.Fire), new KindedDamage(diceFormula, DamageKind.Bludgeoning));
                     await CommonSpellEffects.DealBasicPersistentDamage(target, checkResult, $"{(spellLevel + 1) / 2}", DamageKind.Fire);
                 }
             }), "Stewards of stone and fire linger near volcanoes and deep places near the heart of the earth, hot springs where the water is too scorchingly hot to allow casual enjoyment, and other places where the barrier between fire and earth is thin or nonexistent, though particularly old rock formations, canyons, and other natural features of earth may also spawn or attract them. Stewards of stone and fire are quick to anger and slow to forget.");
