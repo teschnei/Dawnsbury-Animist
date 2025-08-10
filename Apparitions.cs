@@ -27,7 +27,6 @@ using Dawnsbury.Core.Mechanics.Zoning;
 using Dawnsbury.Core.Roller;
 using Dawnsbury.Core.Tiles;
 using Dawnsbury.Display;
-using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Display.Text;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using Dawnsbury.Modding;
@@ -42,7 +41,7 @@ public static class Extensions
     {
         qe.ReferencedSpell = spell;
         spell.ReferencedQEffect = qe;
-        qe.ProvideContextualAction = (QEffect qf) => (!qe.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.Illustration, "Sustain " + spell.Name,
+        qe.ProvideContextualAction = (QEffect qf) => (!qe.CannotExpireThisTurn) ? new ActionPossibility(new CombatAction(qf.Owner, spell.ChosenVariant?.Illustration ?? spell.Illustration, "Sustain " + spell.Name,
         [
             Trait.Concentrate,
             Trait.SustainASpell,
@@ -90,29 +89,37 @@ public class Apparition : Feat
     public SpellId VesselSpell { get; set; }
     public Feat AttunedFeat;
     public Feat FamiliarFeat;
+    public Feat ArchetypeFeat;
+    public QEffectId AttunedQID;
     public QEffectId DispersedQID;
-    public Apparition(FeatName attunedFeatName, FeatName primaryFeatName, FeatName familiarFeatName, QEffectId dispersed, List<SpellId> spells, SpellId vesselSpell, string flavorText) : base(primaryFeatName, flavorText, GenerateRulesText(spells, vesselSpell), [AnimistTrait.ApparitionPrimary], null)
+    public Apparition(FeatName attunedFeatName, FeatName primaryFeatName, FeatName archetypeFeatName, QEffectId apparitionQID, QEffectId dispersedQID, List<SpellId> spells, SpellId vesselSpell, string flavorText) : base(primaryFeatName, flavorText, GenerateRulesText(spells, vesselSpell), [AnimistTrait.ApparitionPrimary], null)
     {
         Skills = new List<Skill>();
         Spells = spells;
         VesselSpell = vesselSpell;
-        DispersedQID = dispersed;
+        AttunedQID = apparitionQID;
+        DispersedQID = dispersedQID;
         WithRulesBlockForSpell(vesselSpell);
         WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration);
         WithOnSheet(sheet =>
         {
             sheet.AddFocusSpellAndFocusPoint(AnimistTrait.Apparition, Ability.Wisdom, VesselSpell);
         });
+        WithOnCreature(cr =>
+        {
+            cr.FindQEffect(apparitionQID)!.Tag = true;
+        });
         AttunedFeat = new Feat(attunedFeatName, flavorText, GenerateRulesText(spells, vesselSpell), [AnimistTrait.ApparitionAttuned], null)
             .WithOnSheet(sheet =>
             {
-                for (var i = 0; i <= sheet.MaximumSpellLevel; ++i)
+                var maxLevel = Math.Min(sheet.MaximumSpellLevel + 1, Spells.Count());
+                for (var i = 0; i < maxLevel; ++i)
                 {
                     SpellId spellID = Spells[i];
                     // All Apparition Spells are signature spells 
                     if (i > 0)
                     {
-                        for (var j = i; j <= sheet.MaximumSpellLevel; ++j)
+                        for (var j = i; j < maxLevel; ++j)
                         {
                             sheet.SpellRepertoires[AnimistTrait.Apparition].SpellsKnown.Add(AllSpells.CreateModernSpellTemplate(spellID, AnimistTrait.Apparition, j));
                         }
@@ -125,7 +132,12 @@ public class Apparition : Feat
                 }
             })
             .WithRulesBlockForSpell(vesselSpell)
-            .WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration);
+            .WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration)
+            .WithPermanentQEffect(null, q =>
+            {
+                q.Id = AttunedQID;
+                q.Tag = false;
+            });
         FamiliarFeat = FamiliarFeats.CreateFamiliarFeat(attunedFeatName.HumanizeTitleCase2(), AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration, [])
             .WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.")
             .WithOnCreature(master =>
@@ -152,6 +164,12 @@ public class Apparition : Feat
                 };
             });
         FamiliarFeat.Traits.Remove(FamiliarFeats.TFamiliar);
+        ArchetypeFeat = new Feat(archetypeFeatName, flavorText, GenerateRulesText(spells, null), [AnimistTrait.ApparitionArchetype], null)
+            .WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration)
+            .WithPermanentQEffect("", q =>
+            {
+                q.CharacterSheetBecomesCreature = (sheet, creature) => creature.Spellcasting?.GetSourceByOrigin(AnimistTrait.Animist)?.AdditionalSpellsOnThisClassList.Add(SpellId.RayOfFrost);
+            });
         WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
         ApparitionLUT.Add(this);
     }
@@ -174,7 +192,7 @@ public class Apparition : Feat
             {
                 if (action.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition)
                 {
-                    var apparitions = action.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned));
+                    var apparitions = GetAttunedApparitions(action.Owner);
                     if (apparitions?.Count() > 1)
                     {
                         if (Spells.Contains(action.SpellId) || action.SpellId == VesselSpell)
@@ -189,7 +207,7 @@ public class Apparition : Feat
                 }
                 else if (action.HasTrait(AnimistTrait.Apparition))
                 {
-                    var apparitions = action.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned));
+                    var apparitions = GetAttunedApparitions(action.Owner);
                     if (apparitions?.Count() <= 1)
                     {
                         return desc2;
@@ -210,7 +228,7 @@ public class Apparition : Feat
         return lvl.Ordinalize2();
     }
 
-    private static string GenerateRulesText(List<SpellId> spells, SpellId VesselSpell)
+    private static string GenerateRulesText(List<SpellId> spells, SpellId? vesselSpell)
     {
         string text = "\n{b}Apparition Spells{/b} ";
         for (var i = 0; i < spells.Count; ++i)
@@ -220,7 +238,10 @@ public class Apparition : Feat
                 text += $"{{b}}{Ordinalize(i)}{{/b}} {AllSpells.CreateModernSpellTemplate(spells[i], AnimistTrait.Animist).ToSpellLink()}; ";
             }
         }
-        text += $"\n{{b}}Vessel Spell{{/b}} {AllSpells.CreateModernSpellTemplate(VesselSpell, AnimistTrait.Animist).ToSpellLink()}";
+        if (vesselSpell != null)
+        {
+            text += $"\n{{b}}Vessel Spell{{/b}} {AllSpells.CreateModernSpellTemplate((SpellId)vesselSpell, AnimistTrait.Animist).ToSpellLink()}";
+        }
         return text;
     }
 
@@ -231,6 +252,16 @@ public class Apparition : Feat
             return spellId;
         }
         return backup;
+    }
+
+    public static IEnumerable<Apparition> GetAttunedApparitions(Creature animist)
+    {
+        return ApparitionLUT.Where(app => animist.QEffects.Any(q => q.Id == app.AttunedQID));
+    }
+
+    public static IEnumerable<Apparition> GetPrimaryApparitions(Creature animist)
+    {
+        return ApparitionLUT.Where(app => animist.QEffects.Any(q => q.Id == app.AttunedQID && (bool?)q.Tag == true));
     }
 
     public static IEnumerable<Apparition> GetApparitions()
@@ -257,7 +288,7 @@ public class Apparition : Feat
             })
         };
         */
-        yield return new Apparition(AnimistFeat.CustodianOfGrovesAndGardens, AnimistFeat.CustodianOfGrovesAndGardensPrimary, AnimistFeat.CustodianOfGrovesAndGardensFamiliar, AnimistQEffects.CustodianOfGrovesAndGardensDispersed,
+        yield return new Apparition(AnimistFeat.CustodianOfGrovesAndGardens, AnimistFeat.CustodianOfGrovesAndGardensPrimary, AnimistFeat.CustodianOfGrovesAndGardensArchetype, AnimistQEffects.CustodianOfGrovesAndGardens, AnimistQEffects.CustodianOfGrovesAndGardensDispersed,
             new List<SpellId>()
             {
                 GetSpell("TangleVine", SpellId.Tanglefoot),
@@ -265,6 +296,7 @@ public class Apparition : Feat
                 GetSpell("GentleBreeze", SpellId.Barkskin),
                 GetSpell("SafePassage", SpellId.PositiveAttunement),
                 GetSpell("PeacefulBubble", SpellId.TortoiseAndTheHare),
+                GetSpell("Truespeech", SpellId.TreeStep),
             },
             ModManager.RegisterNewSpell("GardenOfHealing", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -323,7 +355,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     caster.AddQEffect(qe);
                 });
             }), "Custodians of groves and gardens frequent tended greenery and farmlands cared for by loving stewards, and other places of reflection and restoration where green things grow. Some of these apparitions linger in the mortal realms not because they have lost their way, but because they believe they have already found Elysium. Others are the cultivated spiritual essence of the location itself. Custodians of groves and gardens are peaceful, quiet, and averse to conflict.Custodians of groves and gardens frequent tended greenery and farmlands cared for by loving stewards, and other places of reflection and restoration where green things grow. Some of these apparitions linger in the mortal realms not because they have lost their way, but because they believe they have already found Elysium. Others are the cultivated spiritual essence of the location itself. Custodians of groves and gardens are peaceful, quiet, and averse to conflict.");
-        yield return new Apparition(AnimistFeat.EchoOfLostMoments, AnimistFeat.EchoOfLostMomentsPrimary, AnimistFeat.EchoOfLostMomentsFamiliar, AnimistQEffects.EchoOfLostMomentsDispersed,
+        yield return new Apparition(AnimistFeat.EchoOfLostMoments, AnimistFeat.EchoOfLostMomentsPrimary, AnimistFeat.EchoOfLostMomentsArchetype, AnimistQEffects.EchoOfLostMoments, AnimistQEffects.EchoOfLostMomentsDispersed,
             new List<SpellId>()
             {
                 GetSpell("Figment", SpellId.OpenDoor),
@@ -331,6 +363,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("DispelMagic", SpellId.LooseTimesArrow),
                 GetSpell("CurseOfLostTime", SpellId.CurseOfLostTime),
                 GetSpell("VisionOfDeath", SpellId.PhantasmalKiller),
+                GetSpell("IllusoryScene", SpellId.StagnateTime),
             },
             ModManager.RegisterNewSpell("StoreTime", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -357,7 +390,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     caster.AddQEffect(qe);
                 });
             }), "Echoes of lost moments are apparitions born from memories that everyone has forgotten, often arising from fragmented pieces of magic and memory left behind by time-altering magic. They may even occur in response to significant temporal tampering, cleaning up fragments of time damaged by irresponsible magic. These apparitions are drawn to animists who are orderly and responsible, and they can give such hosts access to spells that alter a target’s timeline or removes them from the current timeline, reveal visions of past or future events, or even accelerate magical effects to a point in time where they have already ended.");
-        yield return new Apparition(AnimistFeat.ImposterInHiddenPlaces, AnimistFeat.ImposterInHiddenPlacesPrimary, AnimistFeat.ImposterInHiddenPlacesFamiliar, AnimistQEffects.ImposterInHiddenPlacesDispersed,
+        yield return new Apparition(AnimistFeat.ImposterInHiddenPlaces, AnimistFeat.ImposterInHiddenPlacesPrimary, AnimistFeat.ImposterInHiddenPlacesArchetype, AnimistQEffects.ImposterInHiddenPlaces, AnimistQEffects.ImposterInHiddenPlacesDispersed,
             new List<SpellId>()
             {
                 GetSpell("TelekineticHand", SpellId.TelekineticProjectile),
@@ -365,6 +398,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("Invisibility", SpellId.Invisibility),
                 GetSpell("VeilOfPrivacy", SpellId.ImpendingDoom),
                 GetSpell("LiminalDoorway", SpellId.DimensionDoor),
+                GetSpell("StrangeGeometry", SpellId.Synesthesia),
             },
             ModManager.RegisterNewSpell("DiscomfitingWhispers", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -428,7 +462,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 });
             }), "Impostors in hidden places whisper in quiet corners where mortal voices rarely resound, hoarding secrets and pondering unknowable truths. They often bring misfortune to those who disturb them, though an animist who earns their trust will find that they make effective allies.");
-        yield return new Apparition(AnimistFeat.LurkerInDevouringDark, AnimistFeat.LurkerInDevouringDarkPrimary, AnimistFeat.LurkerInDevouringDarkFamiliar, AnimistQEffects.LurkerInDevouringDarkDispersed,
+        yield return new Apparition(AnimistFeat.LurkerInDevouringDark, AnimistFeat.LurkerInDevouringDarkPrimary, AnimistFeat.LurkerInDevouringDarkArchetype, AnimistQEffects.LurkerInDevouringDark, AnimistQEffects.LurkerInDevouringDarkDispersed,
             new List<SpellId>()
             {
                 GetSpell("CausticBlast", SpellId.AcidSplash),
@@ -436,6 +470,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("AcidGrip", SpellId.AcidArrow),
                 GetSpell("AqueousOrb", SpellId.SeaOfThought),
                 GetSpell("GraspOfTheDeep", SpellId.PhantasmalKiller),
+                GetSpell("WallOfIce", SpellId.BlackTentacles),
             },
             ModManager.RegisterNewSpell("DevouringDarkForm", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -457,11 +492,15 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     null
                 )
                 .WithActionCost(1)
-                .WithHeightenedAtSpecificLevels(spellLevel, inCombat, [2], ["You can choose to take on the shark battle form from {i}animal form{/i} instead of gaining a tentacle unarmed attack, heightened to the same level as this vessel spell. When you do, this spell loses the morph trait and gains the polymorph trait. You can attempt a jaws unarmed Strike against a creature within your reach each time you Sustain this spell."])
+                .WithHeightenedAtSpecificLevels(spellLevel, inCombat, [2, 5], [
+                        "You can choose to take on the shark battle form from {i}animal form{/i} instead of gaining a tentacle unarmed attack, heightened to the same level as this vessel spell. When you do, this spell loses the morph trait and gains the polymorph trait. You can attempt a jaws unarmed Strike against a creature within your reach each time you Sustain this spell.",
+                        "You can choose to take on the water elemental battle form from {i}elemental form{/i} instead of gaining a tentacle unarmed attack, heightened to the same level as this vessel spell. When you do, this spell loses the morph trait and gains the polymorph trait. You can attempt an unarmed attack Strike against a creature within your reach each time you Sustain this spell.",
+                ])
                 .WithVariants(new SpellVariant[] {
                         new SpellVariant("Tentacle", "Tentacle Form", IllustrationName.Tentacle),
-                        new SpellVariant("Shark", "Shark Form", IllustrationName.AnimalFormShark)
-                    }.Where(v => v.Id == "Tentacle" || (v.Id == "Shark" && spellLevel >= 2)).ToArray())
+                        new SpellVariant("Shark", "Shark Form", IllustrationName.AnimalFormShark),
+                        new SpellVariant("WaterElemental", "Water Elemental Form", IllustrationName.ElementalFormWater),
+                    }.Where(v => v.Id == "Tentacle" || (v.Id == "Shark" && spellLevel >= 2) || (v.Id == "WaterElemental" && spellLevel >= 5)).ToArray())
                 .WithCreateVariantDescription((_, variant) =>
                 {
                     if (variant?.Id == "Tentacle")
@@ -471,6 +510,10 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     else if (variant?.Id == "Shark")
                     {
                         return "You take on the shark battle form from {i}animal form{/i}, heightened to the same level as this vessel spell. You can attempt a jaws unarmed Strike against a creature within your reach each time you Sustain this spell.";
+                    }
+                    else if (variant?.Id == "WaterElemental")
+                    {
+                        return "You take on the water elemental battle form from {i}elemental form{/i}, heightened to the same level as this vessel spell. You can attempt an unarmed attack Strike against a creature within your reach each time you Sustain this spell.";
                     }
                     return "";
                 })
@@ -532,60 +575,65 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                     else if (variant?.Id == "Shark")
                     {
-                        int temporaryHP = spellLevel * 5 - 5;
-                        int athletics = ((spellLevel == 5) ? 20 : ((spellLevel == 4) ? 16 : ((spellLevel == 3) ? 14 : 9)));
-                        int attackModifier = ((spellLevel == 5) ? 18 : ((spellLevel == 4) ? 16 : ((spellLevel == 3) ? 14 : 9)));
-                        int damageBonus = ((spellLevel >= 4) ? 9 : ((spellLevel != 3) ? 1 : 5));
-                        int acBase = ((spellLevel >= 4) ? 18 : ((spellLevel == 3) ? 17 : 16));
-                        int ac = acBase + caster.ProficiencyLevel;
-                        caster.GainTemporaryHP(temporaryHP);
-                        QEffect form = CommonSpellEffects.EnterBattleform(caster, IllustrationName.AnimalFormShark, ac, 7, false);
-                        QEffect qEffect8 = form;
-                        qEffect8.ProvideActionIntoPossibilitySection = null;
-                        qEffect8.ExpiresAt = ExpirationCondition.ExpiresAtEndOfYourTurn;
-                        qEffect8.WithSustaining(spell, AnimistQEffects.LurkerInDevouringDarkDispersed, async q =>
+                        CombatAction sharkForm = AllSpells.CreateModernSpell(SpellId.AnimalForm, spell.Owner, spell.SpellLevel, inCombat: true, new SpellInformation
                         {
-                            Creature? target = await q.Owner.Battle.AskToChooseACreature(q.Owner,
-                                    q.Owner.Battle.AllCreatures.Where(cr => cr.DistanceTo(q.Owner) <= 1 && cr.EnemyOf(q.Owner) && !cr.HasTrait(Trait.Object)),
-                    IllustrationName.Tentacle, "Target a creature to attempt a jaws strike.", "Click to attempt a Strike on this target.", "Skip jaws Strike");
-                            if (target != null)
+                            ClassOfOrigin = spell.SpellcastingSource!.ClassOfOrigin,
+                            Superspell = spell
+                        }).CombatActionSpell;
+                        sharkForm.ChosenVariant = sharkForm.Variants?.Where(variant => variant.Id == "SHARK").FirstOrDefault();
+                        sharkForm.ChosenTargets = ChosenTargets.CreateSingleTarget(spell.Owner);
+                        await sharkForm.WithActionCost(0).AllExecute();
+                        var battleform = spell.Owner.QEffects.Where(q => q.Name == "Battleform").FirstOrDefault();
+                        if (battleform != null)
+                        {
+                            battleform.CannotExpireThisTurn = true;
+                            battleform.ExpiresAt = ExpirationCondition.ExpiresAtEndOfYourTurn;
+                            battleform.WithSustaining(spell, AnimistQEffects.LurkerInDevouringDarkDispersed, async q =>
                             {
-                                var strike = q.Owner.CreateStrike(q.Owner.UnarmedStrike);
-                                strike.ChosenTargets = ChosenTargets.CreateSingleTarget(target);
-                                await strike.WithActionCost(0).AllExecute();
-                            }
-                        }, "When you Sustain this spell, you can attempt a jaws unarmed Strike against a creature within your reach.");
-                        qEffect8.StateCheck = (Action<QEffect>)Delegate.Combine(qEffect8.StateCheck, (Action<QEffect>)delegate (QEffect qfForm)
-                        {
-                            Item replacementUnarmedStrike = CommonItems.CreateNaturalWeapon(IllustrationName.Jaws, "jaws", "2d8", DamageKind.Piercing, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                            {
-                                wp.FixedDamageBonus = damageBonus;
-                            });
-                            Creature owner2 = qfForm.Owner;
-                            owner2.ReplacementUnarmedStrike = replacementUnarmedStrike;
-                        });
-                        form.BattleformMinimumStrikeModifier = attackModifier;
-                        form.BattleformMinimumAthleticsModifier = athletics;
-                        QEffect swimmingEffect = QEffect.Swimming();
-                        bool hasTemporaryAquaticTrait = false;
-                        if (!form.Owner.HasTrait(Trait.Aquatic))
-                        {
-                            form.Owner.Traits.Add(Trait.Aquatic);
-                            hasTemporaryAquaticTrait = true;
+                                Creature? target = await q.Owner.Battle.AskToChooseACreature(q.Owner,
+                                        q.Owner.Battle.AllCreatures.Where(cr => cr.DistanceTo(q.Owner) <= 1 && cr.EnemyOf(q.Owner) && !cr.HasTrait(Trait.Object)),
+                        IllustrationName.Jaws, "Target a creature to attempt a jaws strike.", "Click to attempt a Strike on this target.", "Skip jaws Strike");
+                                if (target != null)
+                                {
+                                    var strike = q.Owner.CreateStrike(q.Owner.UnarmedStrike);
+                                    strike.ChosenTargets = ChosenTargets.CreateSingleTarget(target);
+                                    await strike.WithActionCost(0).AllExecute();
+                                }
+                            }, "When you Sustain this spell, you can attempt a jaws unarmed Strike against a creature within your reach.");
                         }
-                        form.WhenExpires = delegate
+                    }
+                    else if (variant?.Id == "WaterElemental")
+                    {
+                        CombatAction waterElementalForm = AllSpells.CreateModernSpell(SpellId.ElementalForm, spell.Owner, spell.SpellLevel, inCombat: true, new SpellInformation
                         {
-                            swimmingEffect.ExpiresAt = ExpirationCondition.Immediately;
-                            if (hasTemporaryAquaticTrait)
+                            ClassOfOrigin = spell.SpellcastingSource!.ClassOfOrigin,
+                            Superspell = spell
+                        }).CombatActionSpell;
+                        waterElementalForm.ChosenVariant = waterElementalForm.Variants?.Where(variant => variant.Id == "WATER").FirstOrDefault();
+                        waterElementalForm.ChosenTargets = ChosenTargets.CreateSingleTarget(spell.Owner);
+                        await waterElementalForm.WithActionCost(0).AllExecute();
+                        var battleform = spell.Owner.QEffects.Where(q => q.Name == "Battleform").FirstOrDefault();
+                        if (battleform != null)
+                        {
+                            battleform.ExpiresAt = ExpirationCondition.ExpiresAtEndOfYourTurn;
+                            battleform.CannotExpireThisTurn = true;
+                            battleform.WithSustaining(spell, AnimistQEffects.LurkerInDevouringDarkDispersed, async q =>
                             {
-                                form.Owner.Traits.Remove(Trait.Aquatic);
-                            }
-                        };
-                        form.Owner.AddQEffect(swimmingEffect);
+                                Creature? target = await q.Owner.Battle.AskToChooseACreature(q.Owner,
+                                        q.Owner.Battle.AllCreatures.Where(cr => cr.DistanceTo(q.Owner) <= 1 && cr.EnemyOf(q.Owner) && !cr.HasTrait(Trait.Object)),
+                        IllustrationName.ElementalBlastWater, "Target a creature to attempt a strike.", "Click to attempt a Strike on this target.", "Skip Strike");
+                                if (target != null)
+                                {
+                                    var strike = q.Owner.CreateStrike(q.Owner.UnarmedStrike);
+                                    strike.ChosenTargets = ChosenTargets.CreateSingleTarget(target);
+                                    await strike.WithActionCost(0).AllExecute();
+                                }
+                            }, "When you Sustain this spell, you can attempt an unarmed Strike against a creature within your reach.");
+                        }
                     }
                 });
             }), "Lurkers in devouring dark are most often near old shipwrecks, deadly icebergs, and other places where ice and deep water are most prevalent.");
-        yield return new Apparition(AnimistFeat.MonarchOfTheFeyCourts, AnimistFeat.MonarchOfTheFeyCourtsPrimary, AnimistFeat.MonarchOfTheFeyCourtsFamiliar, AnimistQEffects.MonarchOfTheFeyCourtsDispersed,
+        yield return new Apparition(AnimistFeat.MonarchOfTheFeyCourts, AnimistFeat.MonarchOfTheFeyCourtsPrimary, AnimistFeat.MonarchOfTheFeyCourtsArchetype, AnimistQEffects.MonarchOfTheFeyCourts, AnimistQEffects.MonarchOfTheFeyCourtsDispersed,
             new List<SpellId>()
             {
                 GetSpell("TangleVine", SpellId.Tanglefoot),
@@ -593,6 +641,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("CreateFood", SpellId.Glitterdust),
                 GetSpell("Enthrall", SpellId.RoaringApplause),
                 GetSpell("Suggestion", SpellId.Sleep),
+                GetSpell("Hallucination", SpellId.DeathWard),
             },
             ModManager.RegisterNewSpell("NymphsGrace", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -645,7 +694,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     ;
                 });
             }), "Monarchs of the fey courts make their homes near places with strong ties to the First World, or in places where nymphs once held sway. They are drawn to animists who blend an appreciation for art and nature’s beauty with a ruler’s ambition. Monarchs of fey courts are vain, capricious, and do not easily forgive slights or poor manners.");
-        yield return new Apparition(AnimistFeat.RevelerInLostGlee, AnimistFeat.RevelerInLostGleePrimary, AnimistFeat.RevelerInLostGleeFamiliar, AnimistQEffects.RevelerInLostGleeDispersed,
+        yield return new Apparition(AnimistFeat.RevelerInLostGlee, AnimistFeat.RevelerInLostGleePrimary, AnimistFeat.RevelerInLostGleeArchetype, AnimistQEffects.RevelerInLostGlee, AnimistQEffects.RevelerInLostGleeDispersed,
             new List<SpellId>()
             {
                 GetSpell("Prestidigitation", SpellId.TelekineticProjectile),
@@ -653,6 +702,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("LaughingFit", SpellId.HideousLaughter),
                 GetSpell("Hypnotize", SpellId.ImpendingDoom),
                 GetSpell("Confusion", SpellId.Confusion),
+                GetSpell("IllusoryScene", SpellId.CloakOfColors),
             },
             ModManager.RegisterNewSpell("TrickstersMirrors", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -714,7 +764,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 });
             }), "Revelers in lost glee are twisted apparitions that arise in desolate and abandoned places where people once found great joy. They take immense mirth in causing harm or discomfort to others and do not enjoy being attuned to animists who fail to laugh at their antics.");
-        yield return new Apparition(AnimistFeat.StalkerInDarkenedBoughs, AnimistFeat.StalkerInDarkenedBoughsPrimary, AnimistFeat.StalkerInDarkenedBoughsFamiliar, AnimistQEffects.StalkerInDarkenedBoughsDispersed,
+        yield return new Apparition(AnimistFeat.StalkerInDarkenedBoughs, AnimistFeat.StalkerInDarkenedBoughsPrimary, AnimistFeat.StalkerInDarkenedBoughsArchetype, AnimistQEffects.StalkerInDarkenedBoughs, AnimistQEffects.StalkerInDarkenedBoughsDispersed,
             new List<SpellId>()
             {
                 GetSpell("GougingClaw", SpellId.PhaseBolt),
@@ -722,22 +772,10 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("VomitSwarm", SpellId.BoneSpray),
                 GetSpell("WallOfThorns", SpellId.StinkingCloud),
                 GetSpell("BestialCurse", SpellId.BestowCurse),
+                GetSpell("MoonFrenzy", SpellId.WyvernSting),
             },
             ModManager.RegisterNewSpell("DarkenedForestForm", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
-                int AC = spellLevel >= 4 ? 18 : spellLevel >= 3 ? 17 : 16;
-                int tempHP = spellLevel >= 4 ? 15 : spellLevel >= 3 ? 10 : 5;
-                int attackBonus = spellLevel >= 4 ? 16 : spellLevel >= 3 ? 14 : 9;
-                int damageBonus = spellLevel >= 4 ? 9 : spellLevel >= 3 ? 5 : 1;
-                SpellVariant[] variants = new SpellVariant[] {
-                    new SpellVariant("insect", "Insect", IllustrationName.InsectFormPortrait),
-                    new SpellVariant("bear", "Bear", IllustrationName.AnimalFormBear),
-                    new SpellVariant("canine", "Canine", IllustrationName.AnimalFormWolf),
-                    new SpellVariant("snake", "Snake", IllustrationName.AnimalFormSnake),
-                    new SpellVariant("cat", "Cat", IllustrationName.AnimalFormCat),
-                    new SpellVariant("shark", "Shark", IllustrationName.AnimalFormShark),
-                    new SpellVariant("ape", "Ape", IllustrationName.AnimalFormApe)
-                }.Where(v => v.Id == "insect" || spellLevel >= 2).ToArray();
                 return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.WildShape,
                     "Darkened Forest Form",
                     [AnimistTrait.Animist, Trait.Focus, Trait.Polymorph],
@@ -747,150 +785,119 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     spellLevel,
                     null
                 )
-                .WithHeightenedAtSpecificLevels(spellLevel, inCombat, [2], ["You can also transform into the forms listed in {i}animal form{/i}."])
+                .WithHeightenedAtSpecificLevels(spellLevel, inCombat, [2, 5], ["You can also transform into the forms listed in {i}animal form{/i}.", "You can also transform into the forms listed in {i}elemental form{/i}."])
                 .WithActionCost(1)
-                .WithVariants(variants)
-                .WithCreateVariantDescription((_, variant) => variant!.Id switch
+                .WithVariantsCreator(caster =>
                 {
-                    "insect" => "You enter a battleform. Until you dismiss the spell:\r\n• Your AC is {Blue} 15+your level.{/Blue}\r\n• Your Speed is 20 feet" + ((spellLevel >= 4) ? "{Blue} and you have flying.{/Blue}" : ".") + "\r\n• You have a sting unarmed attack with a minimum attack modifier of +7, which deals 1d4 piercing damage and applies insect venom (DC 14; {i}Stage 1{/i} 1d6 poison damage; {i}Stage 2{/i} 1d8 poison damage and flat-footed; {i}Stage 3{/i} 1d12 poison damage, clumsy 1, and flat-footed). You can use your own unarmed attack modifier instead of +7 if it's higher.\r\n• You have weakness 5 to bludgeoning, piercing and slashing damage.\r\n• You can't cast spells, use weapons or perform manipulate actions.",
-                    "bear" => $"You take on the bear battle form. Until you dismiss the spell:\n• Your AC is {{Blue}}{S.HeightenedVariable(AC, 16)}+your level{{/Blue}}.\n• Your Athletics modifier becomes {S.HeightenedVariable(attackBonus, 9)}, unless yours is already higher.\n• Your speed is 30 feet.\n• Your minimum attack modifier is +{S.HeightenedVariable(attackBonus, 9)}. You can use your own unarmed attack modifier instead if it's higher.\n• Your attacks are jaws (2d8+{S.HeightenedVariable(damageBonus, 1)} piercing); claw (agile, 1d8+{S.HeightenedVariable(damageBonus, 1)} slashing).\n• You can't cast spells, use weapons or perform manipulate actions.",
-                    "canine" => $"You take on the canine battle form. Until you dismiss the spell:\n• Your AC is {{Blue}}{S.HeightenedVariable(AC, 16)}+your level{{/Blue}}.\n• Your Athletics modifier becomes {S.HeightenedVariable(attackBonus, 9)}, unless yours is already higher.\n• Your speed is 40 feet.\n• Your minimum attack modifier is +{S.HeightenedVariable(attackBonus, 9)}. You can use your own unarmed attack modifier instead if it's higher.\n• Your attack is jaws (2d8+{S.HeightenedVariable(damageBonus, 1)} piercing).\n• You can't cast spells, use weapons or perform manipulate actions.",
-                    "snake" => $"You take on the snake battle form. Until you dismiss the spell:\n• Your AC is {{Blue}}{S.HeightenedVariable(AC, 16)}+your level{{/Blue}}.\n• Your Athletics modifier becomes {S.HeightenedVariable(attackBonus, 9)}, unless yours is already higher.\n• Your speed is 20 feet.\n• Your minimum attack modifier is +{S.HeightenedVariable(attackBonus, 9)}. You can use your own unarmed attack modifier instead if it's higher.\n• Your attack is fangs (2d4+" + S.HeightenedVariable(damageBonus, 1) + " piercing plus 1d6 poison).\n• You have a swim speed equal to your Speed.\n• You can't cast spells, use weapons or perform manipulate actions.",
-                    "cat" => $"You take on the cat battle form. Until you dismiss the spell:\n• Your AC is {{Blue}}{S.HeightenedVariable(AC, 16)}+your level{{/Blue}}.\n• Your Athletics modifier becomes {S.HeightenedVariable(attackBonus, 9)}, unless yours is already higher.\n• Your speed is 40 feet.\n• Your minimum attack modifier is +{S.HeightenedVariable(attackBonus, 9)}. You can use your own unarmed attack modifier instead if it's higher.\n• Your attacks are jaws (2d6+{S.HeightenedVariable(damageBonus, 1)} piercing); claw (agile, 1d10+{S.HeightenedVariable(damageBonus, 1)} slashing).\n• You can't cast spells, use weapons or perform manipulate actions.",
-                    "shark" => $"You take on the shark battle form. Until you dismiss the spell:\n• Your AC is {{Blue}}{S.HeightenedVariable(AC, 16)}+your level{{/Blue}}.\n• Your Athletics modifier becomes {S.HeightenedVariable(attackBonus, 9)}, unless yours is already higher.\n• Your speed is 35 feet.\n• Your minimum attack modifier is +{S.HeightenedVariable(attackBonus, 9)}. You can use your own unarmed attack modifier instead if it's higher.\n• Your attack is jaws (2d8+" + S.HeightenedVariable(damageBonus, 1) + " piercing).\n• You're aquatic and have a swim speed.\n• You can't cast spells, use weapons or perform manipulate actions.",
-                    "ape" => $"You take on the ape battle form. Until you dismiss the spell:\n• Your AC is {{Blue}}{S.HeightenedVariable(AC, 16)}+your level{{/Blue}}.\n• Your Athletics modifier becomes {S.HeightenedVariable(attackBonus, 9)}, unless yours is already higher.\n• Your speed is 25 feet.\n• Your minimum attack modifier is +{S.HeightenedVariable(attackBonus, 9)}. You can use your own unarmed attack modifier instead if it's higher.\n• Your attack is fist (2d6+" + S.HeightenedVariable(damageBonus, 1) + " bludgeoning).\n• You can't cast spells, use weapons or perform manipulate actions.",
-                    _ => ""
+                    List<SpellVariant> variants = [new SpellVariant("INSECT", "Insect", IllustrationName.InsectFormPortrait)];
+                    if (spellLevel >= 2)
+                    {
+                        variants.AddRange(AllSpells.CreateModernSpell(SpellId.AnimalForm, caster, spellLevel, inCombat: true, spellInformation).CombatActionSpell.Variants!);
+                    }
+                    if (spellLevel >= 5)
+                    {
+                        variants.AddRange(AllSpells.CreateModernSpell(SpellId.ElementalForm, caster, spellLevel, inCombat: true, spellInformation).CombatActionSpell.Variants!);
+                    }
+                    return variants.ToArray();
                 })
-                .WithEffectOnEachTarget(async (spell, caster, target, checkResult) =>
+                .WithCreateVariantDescription((_, variant) =>
                 {
-                    ApplyDarkenedForestForm(spell, spell.ChosenVariant!, caster);
+                    if (variant != null)
+                    {
+                        var (subspell, subspellVariant) = GetSpellAndVariantFromVariant(variant);
+                        return subspell.CreateVariantDescription?.Invoke(_, subspellVariant) ?? subspell.Description;
+                    }
+                    return "";
+                })
+                .WithEffectOnSelf(async (spell, self) =>
+                {
+                    ApplyDarkenedForestForm(spell, spell.ChosenVariant!, self);
                 });
                 void ApplyDarkenedForestForm(CombatAction spell, SpellVariant variant, Creature caster)
                 {
                     caster.RemoveAllQEffects(qe => qe.ReferencedSpell == spell);
-                    Illustration illustration = variant.Illustration;
-                    int speed;
-                    switch (variant.Id)
+                    var oldTempHP = caster.TemporaryHP;
+
+                    var (subspell, subspellVariant) = GetSpellAndVariantFromVariant(variant);
+                    subspell.ChosenVariant = subspellVariant;
+                    subspell.ChosenTargets = ChosenTargets.CreateSingleTarget(caster);
+                    subspell.WithActionCost(0).AllExecute();
+
+                    caster.TemporaryHP = oldTempHP;
+
+                    QEffect? form = caster.QEffects.Where(q => q.Name == "Battleform").FirstOrDefault();
+                    if (form != null)
                     {
-                        case "bear":
-                            speed = 6;
-                            break;
-                        case "canine":
-                        case "cat":
-                            speed = 8;
-                            break;
-                        case "insect":
-                        case "snake":
-                            speed = 4;
-                            break;
-                        case "shark":
-                            speed = 7;
-                            break;
-                        case "ape":
-                            speed = 5;
-                            break;
-                        default:
-                            throw new ArgumentException("Unknown variant.");
+                        form.ReferencedSpell = spell;
+                        form.ExpiresAt = ExpirationCondition.ExpiresAtEndOfYourTurn;
+                        form.CannotExpireThisTurn = true;
+                        form.WithSustaining(spell, AnimistQEffects.StalkerInDarkenedBoughsDispersed);
                     }
-                    int ac = variant.Id == "insect" ? 15 + caster.ProficiencyLevel : AC + caster.ProficiencyLevel;
-                    QEffect form = CommonSpellEffects.EnterBattleform(caster, illustration, ac, speed, false);
-                    form.ReferencedSpell = spell;
-                    form.ExpiresAt = ExpirationCondition.ExpiresAtEndOfYourTurn;
-                    form.CannotExpireThisTurn = true;
-                    form.WithSustaining(spell, AnimistQEffects.StalkerInDarkenedBoughsDispersed, async qe =>
+
+                    caster.AddQEffect(new QEffect()
                     {
-                        var choice = await qe.Owner.AskForChoiceAmongButtons(spell.Illustration, "Change into a different shape?", [.. from variant in variants select variant.Name, "Stay in current form"]);
-                        var new_variant = variants.Where(variant => variant.Name == choice.Caption).First();
-                        ApplyDarkenedForestForm(spell, new_variant, caster);
-                    }, "When you Sustain this spell, you can choose to change into a different shape from those available via any of the associated spells.");
-                    form.StateCheck = (Action<QEffect>)Delegate.Combine(form.StateCheck, (Action<QEffect>)delegate (QEffect qfForm)
-                    {
-                        if (variant.Id == "insect")
+                        ReferencedSpell = spell,
+                        StateCheck = q =>
                         {
-                            qfForm.Owner.WeaknessAndResistance.AddWeakness(DamageKind.Bludgeoning, 5);
-                            qfForm.Owner.WeaknessAndResistance.AddWeakness(DamageKind.Slashing, 5);
-                            qfForm.Owner.WeaknessAndResistance.AddWeakness(DamageKind.Piercing, 5);
-                            qfForm.Owner.ReplacementUnarmedStrike = CommonItems.CreateNaturalWeapon(IllustrationName.Horn, "sting", "1d4", DamageKind.Piercing, Trait.AddsInjuryPoison, Trait.FixedDamageBonusIs0, Trait.BattleformAttack);
-                            qfForm.Owner.AddQEffect(Affliction.CreateInjuryQEffect(Affliction.CreateSnakeVenom("Insect Venom")).WithExpirationEphemeral());
-                            if (spellLevel >= 4)
+                            if (!caster.QEffects.Contains(form))
                             {
-                                qfForm.Owner.AddQEffect(QEffect.Flying().WithExpirationEphemeral());
+                                q.ExpiresAt = ExpirationCondition.Immediately;
                             }
-                        }
-                        else
+                        },
+                        ProvideContextualAction = q => q.ReferencedSpell?.ReferencedQEffect?.CannotExpireThisTurn ?? true ? null : new SubmenuPossibility(spell.Illustration, $"Change {spell.Name} Form")
                         {
-                            Item replacementUnarmedStrike = variant.Id switch
-                            {
-                                "bear" => CommonItems.CreateNaturalWeapon(IllustrationName.Jaws, "jaws", "2d8", DamageKind.Piercing, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
+                            Subsections =
+                            [
+                                new PossibilitySection($"Change {spell.Name} Form")
                                 {
-                                    wp.FixedDamageBonus = damageBonus;
-                                }),
-                                "canine" => CommonItems.CreateNaturalWeapon(IllustrationName.Jaws, "jaws", "2d8", DamageKind.Piercing, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                                {
-                                    wp.FixedDamageBonus = damageBonus;
-                                }),
-                                "snake" => CommonItems.CreateNaturalWeapon(IllustrationName.Fang, "fangs", "2d4", DamageKind.Piercing, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                                {
-                                    wp.WithAdditionalDamage("1d6", DamageKind.Poison);
-                                }).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                                {
-                                    wp.FixedDamageBonus = damageBonus;
-                                }),
-                                "cat" => CommonItems.CreateNaturalWeapon(IllustrationName.Jaws, "jaws", "2d6", DamageKind.Piercing, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                                {
-                                    wp.FixedDamageBonus = damageBonus;
-                                }),
-                                "shark" => CommonItems.CreateNaturalWeapon(IllustrationName.Jaws, "jaws", "2d8", DamageKind.Piercing, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                                {
-                                    wp.FixedDamageBonus = damageBonus;
-                                }),
-                                "ape" => CommonItems.CreateNaturalWeapon(IllustrationName.Fist, "fist", "2d6", DamageKind.Bludgeoning, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                                {
-                                    wp.FixedDamageBonus = damageBonus;
-                                }),
-                                _ => throw new ArgumentOutOfRangeException(),
-                            };
-                            qfForm.Owner.ReplacementUnarmedStrike = replacementUnarmedStrike;
+                                    Possibilities = spell.VariantsCreator!(caster).ExceptBy([variant.Id], var => var.Id).Select(variant =>
+                                        new ActionPossibility(new CombatAction(caster, variant.Illustration, $"{spell.Name} ({variant.Name})",
+                                                    [Trait.Concentrate, Trait.SustainASpell, Trait.Basic, Trait.DoesNotBreakStealth, AnimistTrait.Apparition], spell.CreateVariantDescription!(1, variant), Target.Self()
+                                            .WithAdditionalRestriction(self =>
+                                            {
+                                                if (!self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Exists(sp => sp.SpellId == spell.SpellId))
+                                                {
+                                                    return "You do not have the primary apparition to sustain this spell.";
+                                                }
+                                                if (self.HasEffect(AnimistQEffects.StalkerInDarkenedBoughsDispersed))
+                                                {
+                                                    return $"Your {AnimistQEffects.StalkerInDarkenedBoughsDispersed.HumanizeTitleCase2()} is currently dispersed.";
+                                                }
+                                                return null;
+                                            }))
+                                            .WithReferencedQEffect(q)
+                                            .WithActionCost(1)
+                                            .WithEffectOnSelf(async delegate (CombatAction action, Creature creature)
+                                            {
+                                                ApplyDarkenedForestForm(spell, variant, caster);
+                                            }))
+                                    ).Cast<Possibility>().ToList()
+                                }
+                            ]
                         }
                     });
-                    form.BattleformMinimumStrikeModifier = attackBonus;
-                    form.BattleformMinimumAthleticsModifier = attackBonus;
-                    if (variant.Id == "bear")
+                }
+                (CombatAction, SpellVariant?) GetSpellAndVariantFromVariant(SpellVariant variant)
+                {
+                    if (spellLevel >= 5)
                     {
-                        form.AdditionalUnarmedStrike = CommonItems.CreateNaturalWeapon(IllustrationName.DragonClaws, "claw", "1d8", DamageKind.Slashing, Trait.Agile, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
+                        var elementalForm = AllSpells.CreateModernSpell(SpellId.ElementalForm, spellCaster, spellLevel, inCombat: true, spellInformation).CombatActionSpell;
+                        var elementalFormVariant = elementalForm.Variants!.FirstOrDefault(v => v.Id == variant.Id);
+                        if (elementalFormVariant != null)
                         {
-                            wp.FixedDamageBonus = damageBonus;
-                        });
-                    }
-                    if (variant.Id == "cat")
-                    {
-                        form.AdditionalUnarmedStrike = CommonItems.CreateNaturalWeapon(IllustrationName.DragonClaws, "claw", "1d10", DamageKind.Slashing, Trait.Agile, Trait.BattleformAttack).WithAdditionalWeaponProperties(delegate (WeaponProperties wp)
-                        {
-                            wp.FixedDamageBonus = damageBonus;
-                        });
-                    }
-                    if (variant.Id == "snake" || variant.Id == "shark")
-                    {
-                        QEffect swimmingEffect = QEffect.Swimming();
-                        bool hasTemporaryAquaticTrait = false;
-                        if (variant.Id == "shark" && !form.Owner.HasTrait(Trait.Aquatic))
-                        {
-                            form.Owner.Traits.Add(Trait.Aquatic);
-                            hasTemporaryAquaticTrait = true;
+                            return (elementalForm, elementalFormVariant);
                         }
-                        form.WhenExpires = delegate
-                        {
-                            swimmingEffect.ExpiresAt = ExpirationCondition.Immediately;
-                            if (hasTemporaryAquaticTrait)
-                            {
-                                form.Owner.Traits.Remove(Trait.Aquatic);
-                            }
-                        };
-                        form.Owner.AddQEffect(swimmingEffect);
                     }
+                    var animalForm = AllSpells.CreateModernSpell(SpellId.AnimalForm, spellCaster, spellLevel, inCombat: true, spellInformation).CombatActionSpell;
+                    var animalFormVariant = animalForm.Variants!.FirstOrDefault(v => v.Id == variant.Id);
+                    if (animalFormVariant != null)
+                    {
+                        return (animalForm, animalFormVariant);
+                    }
+                    return (AllSpells.CreateModernSpell(SpellId.InsectForm, spellCaster, spellLevel, inCombat: true, spellInformation).CombatActionSpell, null);
                 }
             }), "Stalkers in darkened boughs make their homes in ancient forests and jungles unfriendly to humanoids and others who would exert control or influence over nature’s designs. These apparitions are drawn to animists who harbor violent thoughts or impulses but are more likely to linger with animists who can quell their hatred. Stalkers in darkened boughs are moody, impulsive, and prone to seeing things from the least charitable perspective.");
-        yield return new Apparition(AnimistFeat.StewardOfStoneAndFire, AnimistFeat.StewardOfStoneAndFirePrimary, AnimistFeat.StewardOfStoneAndFireFamiliar, AnimistQEffects.StewardOfStoneAndFireDispersed,
+        yield return new Apparition(AnimistFeat.StewardOfStoneAndFire, AnimistFeat.StewardOfStoneAndFirePrimary, AnimistFeat.StewardOfStoneAndFireArchetype, AnimistQEffects.StewardOfStoneAndFire, AnimistQEffects.StewardOfStoneAndFireDispersed,
             new List<SpellId>()
             {
                 GetSpell("Ignition", SpellId.ProduceFlame),
@@ -898,6 +905,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("ExplodingEarth", SpellId.FlamingSphere),
                 GetSpell("Fireball", SpellId.Fireball),
                 GetSpell("WallOfFire", SpellId.WallOfFire),
+                GetSpell("WallOfStone", SpellId.IncendiaryFog),
             },
             ModManager.RegisterNewSpell("EarthsBile", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -952,7 +960,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     await CommonSpellEffects.DealBasicPersistentDamage(target, checkResult, $"{(spellLevel + 1) / 2}", DamageKind.Fire);
                 }
             }), "Stewards of stone and fire linger near volcanoes and deep places near the heart of the earth, hot springs where the water is too scorchingly hot to allow casual enjoyment, and other places where the barrier between fire and earth is thin or nonexistent, though particularly old rock formations, canyons, and other natural features of earth may also spawn or attract them. Stewards of stone and fire are quick to anger and slow to forget.");
-        yield return new Apparition(AnimistFeat.VanguardOfRoaringWaters, AnimistFeat.VanguardOfRoaringWatersPrimary, AnimistFeat.VanguardOfRoaringWatersFamiliar, AnimistQEffects.VanguardOfRoaringWatersDispersed,
+        yield return new Apparition(AnimistFeat.VanguardOfRoaringWaters, AnimistFeat.VanguardOfRoaringWatersPrimary, AnimistFeat.VanguardOfRoaringWatersArchetype, AnimistQEffects.VanguardOfRoaringWaters, AnimistQEffects.VanguardOfRoaringWatersDispersed,
             new List<SpellId>()
             {
                 GetSpell("RousingSplash", SpellId.RayOfFrost),
@@ -960,6 +968,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("Mist", SpellId.ObscuringMist),
                 GetSpell("CrashingWave", SpellId.CrashingWave),
                 GetSpell("HydraulicTorrent", SpellId.HydraulicTorrent),
+                GetSpell("ControlWater", SpellId.Geyser),
             },
             ModManager.RegisterNewSpell("RiverCarvingMountains", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
@@ -1008,7 +1017,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     }
                 });
             }), "Vanguards of roaring waters are found where rivers carve their way through mountains, creating fearsome rapids. They can also be found near bays where rivers meet the sea and create turbulent breakers and unpredictable undertows, coastal reefs that tear the bottoms from unwary ships and isolate islands, or anywhere else where water becomes violent and difficult to navigate safely. Vanguards of roaring waters encourage chaos and are easily bored.");
-        yield return new Apparition(AnimistFeat.WitnessToAncientBattles, AnimistFeat.WitnessToAncientBattlesPrimary, AnimistFeat.WitnessToAncientBattlesFamiliar, AnimistQEffects.WitnessToAncientBattlesDispersed,
+        yield return new Apparition(AnimistFeat.WitnessToAncientBattles, AnimistFeat.WitnessToAncientBattlesPrimary, AnimistFeat.WitnessToAncientBattlesArchetype, AnimistQEffects.WitnessToAncientBattles, AnimistQEffects.WitnessToAncientBattlesDispersed,
             new List<SpellId>()
             {
                 GetSpell("Shield", SpellId.Shield),
@@ -1016,10 +1025,11 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                 GetSpell("Enlarge", SpellId.CladInMetal),
                 GetSpell("GhostlyWeapon", SpellId.DeflectCriticalHit),
                 GetSpell("WeaponStorm", SpellId.Stoneskin),
+                GetSpell("InvokeSpirits", SpellId.BlinkCharge),
             },
             ModManager.RegisterNewSpell("EmbodimentOfBattle", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
-                var bonus = spellLevel >= 4 ? 2 : 1;
+                var bonus = spellLevel >= 7 ? 3 : spellLevel >= 4 ? 2 : 1;
                 return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.MagicWeapon,
                     "Embodiment of Battle",
                     [AnimistTrait.Animist, Trait.Focus],
@@ -1029,7 +1039,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     spellLevel,
                     null
                 )
-                .WithHeightenedAtSpecificLevels(spellLevel, inCombat, [4], ["The status bonus to attack and damage rolls granted by this spell is increased to +2."])
+                .WithHeightenedAtSpecificLevels(spellLevel, inCombat, [4, 7], ["The status bonus to attack and damage rolls granted by this spell is increased to +2.", "The status bonus to attack and damage rolls granted by this spell is increased to +3."])
                 .WithActionCost(1)
                 .WithEffectOnEachTarget(async (spell, caster, target, checkResult) =>
                 {
@@ -1084,6 +1094,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
             yield return apparition;
             yield return apparition.AttunedFeat;
             yield return apparition.FamiliarFeat;
+            yield return apparition.ArchetypeFeat;
         }
     }
 }

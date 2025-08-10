@@ -44,18 +44,18 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly FeatName StewardOfStoneAndFirePrimary = ModManager.RegisterFeatName("Steward Of Stone And Fire Primary", "Steward Of Stone And Fire");
         public static readonly FeatName VanguardOfRoaringWatersPrimary = ModManager.RegisterFeatName("Vanguard Of Roaring Waters Primary", "Vanguard Of Roaring Waters");
         public static readonly FeatName WitnessToAncientBattlesPrimary = ModManager.RegisterFeatName("Witness To Ancient Battles Primary", "Witness To Ancient Battles");
-        //Familiars
-        public static readonly FeatName CrafterInTheVaultFamiliar = ModManager.RegisterFeatName("Crafter In The Vault Familiar", "Crafter In The Vault");
-        public static readonly FeatName CustodianOfGrovesAndGardensFamiliar = ModManager.RegisterFeatName("Custodian Of Groves And Gardens Familiar", "Custodian Of Groves And Gardens");
-        public static readonly FeatName EchoOfLostMomentsFamiliar = ModManager.RegisterFeatName("Echo Of Lost Moments Familiar", "Echo Of Lost Moments");
-        public static readonly FeatName ImposterInHiddenPlacesFamiliar = ModManager.RegisterFeatName("Imposter In Hidden Places Familiar", "Imposter In Hidden Places");
-        public static readonly FeatName LurkerInDevouringDarkFamiliar = ModManager.RegisterFeatName("Lurker In Devouring Dark Familiar", "Lurker In Devouring Dark");
-        public static readonly FeatName MonarchOfTheFeyCourtsFamiliar = ModManager.RegisterFeatName("Monarch Of The Fey Courts Familiar", "Monarch Of The Fey Courts");
-        public static readonly FeatName RevelerInLostGleeFamiliar = ModManager.RegisterFeatName("Reveler In Lost Glee Familiar", "Reveler In Lost Glee");
-        public static readonly FeatName StalkerInDarkenedBoughsFamiliar = ModManager.RegisterFeatName("Stalker In Darkened Boughs Familiar", "Stalker In Darkened Boughs");
-        public static readonly FeatName StewardOfStoneAndFireFamiliar = ModManager.RegisterFeatName("Steward Of Stone And Fire Familiar", "Steward Of Stone And Fire");
-        public static readonly FeatName VanguardOfRoaringWatersFamiliar = ModManager.RegisterFeatName("Vanguard Of Roaring Waters Familiar", "Vanguard Of Roaring Waters");
-        public static readonly FeatName WitnessToAncientBattlesFamiliar = ModManager.RegisterFeatName("Witness To Ancient Battles Familiar", "Witness To Ancient Battles");
+        //Archetype
+        public static readonly FeatName CrafterInTheVaultArchetype = ModManager.RegisterFeatName("Crafter In The Vault Archetype", "Crafter In The Vault");
+        public static readonly FeatName CustodianOfGrovesAndGardensArchetype = ModManager.RegisterFeatName("Custodian Of Groves And Gardens Archetype", "Custodian Of Groves And Gardens");
+        public static readonly FeatName EchoOfLostMomentsArchetype = ModManager.RegisterFeatName("Echo Of Lost Moments Archetype", "Echo Of Lost Moments");
+        public static readonly FeatName ImposterInHiddenPlacesArchetype = ModManager.RegisterFeatName("Imposter In Hidden Places Archetype", "Imposter In Hidden Places");
+        public static readonly FeatName LurkerInDevouringDarkArchetype = ModManager.RegisterFeatName("Lurker In Devouring Dark Archetype", "Lurker In Devouring Dark");
+        public static readonly FeatName MonarchOfTheFeyCourtsArchetype = ModManager.RegisterFeatName("Monarch Of The Fey Courts Archetype", "Monarch Of The Fey Courts");
+        public static readonly FeatName RevelerInLostGleeArchetype = ModManager.RegisterFeatName("Reveler In Lost Glee Archetype", "Reveler In Lost Glee");
+        public static readonly FeatName StalkerInDarkenedBoughsArchetype = ModManager.RegisterFeatName("Stalker In Darkened Boughs Archetype", "Stalker In Darkened Boughs");
+        public static readonly FeatName StewardOfStoneAndFireArchetype = ModManager.RegisterFeatName("Steward Of Stone And Fire Archetype", "Steward Of Stone And Fire");
+        public static readonly FeatName VanguardOfRoaringWatersArchetype = ModManager.RegisterFeatName("Vanguard Of Roaring Waters Archetype", "Vanguard Of Roaring Waters");
+        public static readonly FeatName WitnessToAncientBattlesArchetype = ModManager.RegisterFeatName("Witness To Ancient Battles Archetype", "Witness To Ancient Battles");
         //Features
         public static readonly FeatName ThirdApparition = ModManager.RegisterFeatName("Third Apparition");
         public static readonly FeatName FourthApparition = ModManager.RegisterFeatName("Fourth Apparition");

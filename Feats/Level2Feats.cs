@@ -222,7 +222,7 @@ public static class Level2
                         }
                         if (targetLine is EmanationTarget emanation)
                         {
-                            Apparition? apparition = qe.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionPrimary) && feat is Apparition apparition && !qe.Owner.HasEffect(apparition.DispersedQID)).FirstOrDefault() as Apparition;
+                            Apparition? apparition = Apparition.GetPrimaryApparitions(qe.Owner).Where(apparition => !qe.Owner.HasEffect(apparition.DispersedQID)).FirstOrDefault();
                             // No primary apparition available
                             if (apparition == null)
                             {
@@ -260,7 +260,7 @@ public static class Level2
                         {
                             if (originalSpell.SpellId == SpellId.Bless || originalSpell.SpellId == SpellId.Bane)
                             {
-                                Apparition? apparition = qe.Owner.PersistentCharacterSheet?.Calculated.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionPrimary) && feat is Apparition apparition && !qe.Owner.HasEffect(apparition.DispersedQID)).FirstOrDefault() as Apparition;
+                                Apparition? apparition = Apparition.GetPrimaryApparitions(qe.Owner).Where(apparition => !qe.Owner.HasEffect(apparition.DispersedQID)).FirstOrDefault();
                                 // No primary apparition available
                                 if (apparition == null)
                                 {

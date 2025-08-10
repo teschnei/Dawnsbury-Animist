@@ -24,6 +24,18 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly QEffectId AnimistsReflectionUsed = ModManager.RegisterEnumMember<QEffectId>("Animist's Reflection Used");
         public static readonly QEffectId InstinctiveManeuvers = ModManager.RegisterEnumMember<QEffectId>("Instinctive Maneuvers");
 
+        public static readonly QEffectId CrafterInTheVault = ModManager.RegisterEnumMember<QEffectId>("Crafter In The Vault");
+        public static readonly QEffectId CustodianOfGrovesAndGardens = ModManager.RegisterEnumMember<QEffectId>("Custodian Of Groves And Gardens");
+        public static readonly QEffectId EchoOfLostMoments = ModManager.RegisterEnumMember<QEffectId>("Echo Of Lost Moments");
+        public static readonly QEffectId ImposterInHiddenPlaces = ModManager.RegisterEnumMember<QEffectId>("Imposter In Hidden Places");
+        public static readonly QEffectId LurkerInDevouringDark = ModManager.RegisterEnumMember<QEffectId>("Lurker In Devouring Dark");
+        public static readonly QEffectId MonarchOfTheFeyCourts = ModManager.RegisterEnumMember<QEffectId>("Monarch Of The Fey Courts");
+        public static readonly QEffectId RevelerInLostGlee = ModManager.RegisterEnumMember<QEffectId>("Reveler In Lost Glee");
+        public static readonly QEffectId StalkerInDarkenedBoughs = ModManager.RegisterEnumMember<QEffectId>("Stalker In Darkened Boughs");
+        public static readonly QEffectId StewardOfStoneAndFire = ModManager.RegisterEnumMember<QEffectId>("Steward Of Stone And Fire");
+        public static readonly QEffectId VanguardOfRoaringWaters = ModManager.RegisterEnumMember<QEffectId>("Vanguard Of Roaring Waters");
+        public static readonly QEffectId WitnessToAncientBattles = ModManager.RegisterEnumMember<QEffectId>("Witness To Ancient Battles");
+
         public static readonly QEffectId CrafterInTheVaultDispersed = ModManager.RegisterEnumMember<QEffectId>("Crafter In The Vault Dispersed");
         public static readonly QEffectId CustodianOfGrovesAndGardensDispersed = ModManager.RegisterEnumMember<QEffectId>("Custodian Of Groves And Gardens Dispersed");
         public static readonly QEffectId EchoOfLostMomentsDispersed = ModManager.RegisterEnumMember<QEffectId>("Echo Of Lost Moments Dispersed");

@@ -12,6 +12,7 @@ using Dawnsbury.Core.Mechanics.Core;
 using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Possibilities;
+using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Mods.Classes.Animist.Apparitions;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
@@ -84,29 +85,29 @@ public static class Level1
             {
                 q.ProvideMainAction = qe =>
                 {
-                    return new ActionPossibility(new CombatAction(qe.Owner, IllustrationName.CircleOfProtection, "Circle Of Spirits", [AnimistTrait.Animist, Trait.Concentrate, Trait.Basic],
-                            "Choose another apparition from among those you’ve attuned to; it becomes your primary apparition, replacing your current one.",
-                            Target.Self(null))
-                        .WithActionCost(1)
-                        .WithEffectOnSelf(async (action, self) =>
-                        {
-                            var choice = await self.AskForChoiceAmongButtons(IllustrationName.CircleOfProtection, "Choose a new primary apparition",
-                                   [.. from feat in self.PersistentCharacterSheet?.Calculated.AllFeats where feat.HasTrait(AnimistTrait.ApparitionAttuned) select feat.Name, "Cancel"]);
-                            if (choice.Caption == "Cancel")
+                    var primaryApparitions = Apparition.GetPrimaryApparitions(q.Owner);
+                    var attunedApparitions = Apparition.GetAttunedApparitions(q.Owner).Except(primaryApparitions);
+                    return new SubmenuPossibility(IllustrationName.CircleOfProtection, "Circle Of Spirits")
+                    {
+                        Subsections =
+                        [
+                            new PossibilitySection("Circle Of Spirits")
                             {
-                                action.RevertRequested = true;
+                                Possibilities = primaryApparitions?.SelectMany(Old => attunedApparitions?.Select(New => (Old, New)) ?? [])?.Select(apparitions =>
+                                    new ActionPossibility(new CombatAction(qe.Owner, new SideBySideIllustration(apparitions.Old.Illustration!, apparitions.New.Illustration!), $"Circle Of Spirits ({apparitions.Old.Name} -> {apparitions.New.Name})", [AnimistTrait.Animist, Trait.Concentrate, Trait.Basic],
+                                            $"You replace your {apparitions.Old.Name} with the {apparitions.New.Name}", Target.Self())
+                                        .WithActionCost(1)
+                                        .WithEffectOnSelf(async (action, self) =>
+                                        {
+                                            self.FindQEffect(apparitions.Old.AttunedQID)!.Tag = false;
+                                            self.FindQEffect(apparitions.New.AttunedQID)!.Tag = true;
+                                            self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.FocusSpells.RemoveAll(spell => spell.SpellId == apparitions.Old.VesselSpell);
+                                            self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.WithSpells([apparitions.New.VesselSpell], self.PersistentCharacterSheet?.Calculated.MaximumSpellLevel ?? 0);
+                                        })
+                                )).Cast<Possibility>().ToList() ?? []
                             }
-                            else
-                            {
-                                Apparition? chosenApparition = Apparition.ApparitionLUT.Where(feat => feat.Name == choice.Caption).FirstOrDefault();
-                                if (chosenApparition != null)
-                                {
-                                    self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.FocusSpells.RemoveAll(spell => true);
-                                    self.Spellcasting?.GetSourceByOrigin(AnimistTrait.Apparition)?.WithSpells([chosenApparition.VesselSpell], self.PersistentCharacterSheet?.Calculated.MaximumSpellLevel ?? 0);
-                                }
-                            }
-                        })
-                    );
+                        ]
+                    };
                 };
             })
             .WithOnSheet(sheet =>
