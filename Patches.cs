@@ -68,7 +68,7 @@ static class StoreTimePatch
     }
 }
 
-[HarmonyPatch(typeof(Actions), nameof(Actions.CanTakeReaction))]
+[HarmonyPatch(typeof(Actions), nameof(Actions.CanTakeReaction), [])]
 static class StoreTimePatch2
 {
     static void Postfix(ref bool __result, Creature ___creature)
@@ -84,7 +84,7 @@ static class StoreTimePatch2
     }
 }
 
-[HarmonyPatch(typeof(Actions), nameof(Actions.UseUpReaction))]
+[HarmonyPatch(typeof(Actions), nameof(Actions.UseUpReaction), [])]
 static class StoreTimePatch3
 {
     static bool Prefix(Creature ___creature)

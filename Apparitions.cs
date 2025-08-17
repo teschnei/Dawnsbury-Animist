@@ -476,7 +476,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
             {
                 return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.Tentacle,
                     "Devouring Dark Form",
-                    [AnimistTrait.Animist, Trait.Aura, Trait.Focus, Trait.Morph],
+                    [AnimistTrait.Animist, Trait.Focus, Trait.Morph],
                     "Your apparition's dark power blends with your physical body, allowing you to take on terrifying characteristics of creatures that lurk in dark places.",
                     $"Your arms and legs transform into twisting tentacles. You gain a tentacle unarmed attack with 10-foot reach that deals 1d8 bludgeoning damage and has the grapple trait. The first time you Sustain this spell each round, you can attempt a single Grapple check with your tentacle against a creature within its reach.",
                     Target.DependsOnSpellVariant(variant =>
