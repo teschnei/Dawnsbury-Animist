@@ -60,7 +60,7 @@ public static class AnimistClassLoader
                 ),
                 String.Join("\n",
                     from f in cr.PersistentCharacterSheet?.Calculated.AllFeats ?? []
-                    where f.HasTrait(AnimistTrait.ApparitionAttuned) && cr.PersistentCharacterSheet?.Calculated.AllFeats.Where(p => p is Apparition apparition && apparition.AttunedFeat == f).Count() == 0
+                    where f.HasTrait(AnimistTrait.ApparitionAttuned) || f.HasTrait(AnimistTrait.ApparitionArchetype) && cr.PersistentCharacterSheet?.Calculated.AllFeats.Where(p => p is Apparition apparition && apparition.AttunedFeat == f).Count() == 0
                     select $"{f.DisplayName(cr.PersistentCharacterSheet!)}"
                 )
             ))

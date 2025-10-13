@@ -32,6 +32,7 @@ using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using Dawnsbury.Modding;
 using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 using Dawnsbury.Mods.Familiars;
+using Dawnsbury.Core.Mechanics.ReactiveAttacks;
 
 namespace Dawnsbury.Mods.Classes.Animist.Apparitions;
 
@@ -361,6 +362,7 @@ public class Apparition : Feat
                         {
                             q.Tag = null;
                         },
+                        OfferExtraReaction = (q, question, traits) => traits.Contains(AnimistTrait.Apparition) ? "StoreTime" : null
                     }.WithSustaining(spell, AnimistQEffects.EchoOfLostMomentsDispersed);
                     caster.AddQEffect(qe);
                 });
@@ -1009,7 +1011,7 @@ public class Apparition : Feat
                     "Embodiment of Battle",
                     [AnimistTrait.Animist, Trait.Focus],
                     "Your apparition guides your attacks and imparts its skill to your movements.",
-                    $"For the duration, your proficiency with martial weapons is equal to your proficiency with simple weapons, you gain a +{S.HeightenedVariable(bonus, 1)} status bonus to attack and damage rolls made with weapons or unarmed attacks, and you gain the Attack Of Opportunity reaction (page 37); this reaction gains the apparition trait. The instincts of an apparition of battle run contrary to the use of magic; for the duration of this spell, you take a –2 status penalty to your spell attack modifiers and your spell DCs.",
+                    $"For the duration, your proficiency with martial weapons is equal to your proficiency with simple weapons, you gain a +{S.HeightenedVariable(bonus, 1)} status bonus to attack and damage rolls made with weapons or unarmed attacks, and you gain the Attack Of Opportunity reaction; this reaction gains the apparition trait. The instincts of an apparition of battle run contrary to the use of magic; for the duration of this spell, you take a –2 status penalty to your spell attack modifiers and your spell DCs.",
                     Target.Self(null).WithAdditionalRestriction(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : null),
                     spellLevel,
                     null
@@ -1018,7 +1020,20 @@ public class Apparition : Feat
                 .WithActionCost(1)
                 .WithEffectOnEachTarget(async (spell, caster, target, checkResult) =>
                 {
-                    var reactiveStrike = QEffect.AttackOfOpportunity();
+                    var reactiveStrike = AttackOfOpportunityMechanics.AttackOfOpportunity(new AttackOfOpportunityMechanics()
+                    {
+                        Name = "Attack of Opportunity",
+                        Description = "When a creature leaves a square within your reach, makes a ranged attack or uses a move or manipulate action, you can Strike it for free. On a critical hit, you also disrupt the manipulate action.",
+                        RestrictToOnlyAgainstWhom = null,
+                        OverheadName = "*attack of opportunity*",
+                        StandStill = false,
+                        StrikeAndReactionTraits = [
+                            Trait.ReactiveAttack,
+                            Trait.AttackOfOpportunity,
+                            AnimistTrait.Apparition
+                        ],
+                        NumberOfStrikes = 1
+                    });
                     var oldProficiency = target.Proficiencies.Get(Trait.Martial);
                     var qe = new QEffect(spell.Name, "Your apparition guides your attacks, granting you increased martial prowess, but reduced spellcasting prowess.", ExpirationCondition.ExpiresAtEndOfYourTurn, caster, spell.Illustration)
                     {

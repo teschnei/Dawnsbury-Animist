@@ -112,7 +112,7 @@ public static class Level1
             })
             .WithOnSheet(sheet =>
             {
-                sheet.AtEndOfRecalculation += sheet2 => sheet2.FocusPointCount = Math.Max(sheet2.FocusPointCount, sheet2.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned)).Count());
+                sheet.AtEndOfRecalculation += sheet2 => sheet2.FocusPointCount = Math.Max(sheet2.FocusPointCount, sheet2.AllFeats.Where(feat => feat.HasTrait(AnimistTrait.ApparitionAttuned) || feat.HasTrait(AnimistTrait.ApparitionArchetype)).Count());
             });
         yield return new TrueFeat(AnimistFeat.RelinquishControl, 1,
                 "Your apparition takes over and shields you from outside influence.",
@@ -122,10 +122,18 @@ public static class Level1
             .WithActionCost(0)
             .WithOnSheet(sheet =>
             {
-                sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", -1, ft => ft.HasTrait(AnimistTrait.ApparitionAttuned)));
+                var apparitionTrait = sheet.Class?.FeatName == AnimistFeat.AnimistClass ? AnimistTrait.ApparitionAttuned : AnimistTrait.ApparitionArchetype;
+                sheet.AddSelectionOptionRightNow(new SingleFeatSelectionOption("RelinquishControlApparition", "Bonded Apparition", -1, ft => ft.HasTrait(apparitionTrait)));
                 var attunedIndex = sheet.SelectionOptions.FindIndex(option => option.Name == "Attuned Apparitions");
-                int count = sheet.AllFeatNames.Contains(AnimistFeat.FourthApparition) ? 3 : sheet.AllFeatNames.Contains(AnimistFeat.ThirdApparition) ? 2 : 1;
-                sheet.SelectionOptions[attunedIndex] = new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(AnimistTrait.ApparitionAttuned), count);
+                int count = sheet.AllFeatNames.Contains(AnimistFeat.FourthApparition) ? 3 : sheet.AllFeatNames.Contains(AnimistFeat.ThirdApparition) ? 2 : apparitionTrait == AnimistTrait.ApparitionAttuned ? 1 : 0;
+                if (count > 0)
+                {
+                    sheet.SelectionOptions[attunedIndex] = new MultipleFeatSelectionOption("AnimistApparition", "Attuned Apparitions", SelectionOption.MORNING_PREPARATIONS_LEVEL, (ft) => ft.HasTrait(apparitionTrait), count);
+                }
+                else
+                {
+                    sheet.SelectionOptions.RemoveAt(attunedIndex);
+                }
             })
             .WithPermanentQEffect("You gain a +4 status bonus on saves against controlling effects, but you can only take the Step, Strike, Cast an apparition Spell, Cast a vessel Spell, Sustain a vessel spell, or use an action with the apparition trait.  In addition, you must select one apparition to be your bonded apparition, that will always be one of your attuned apparitions.", q =>
             {
