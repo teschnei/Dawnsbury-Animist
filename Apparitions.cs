@@ -51,10 +51,6 @@ public static class Extensions
         ], "The duration of " + spell.Name + " continues until the end of your next turn." + ((additionalText == null) ? "" : ("\n\n" + additionalText)), Target.Self((Creature self, AI ai) => ai.ShouldSustain(spell))
         .WithAdditionalRestriction(self =>
         {
-            if (!self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Exists(sp => sp.SpellId == spell.SpellId))
-            {
-                return "You do not have the primary apparition to sustain this spell.";
-            }
             if (self.HasEffect(apparitionDispersed))
             {
                 return $"Your {apparitionDispersed.HumanizeTitleCase2()} is currently dispersed.";
@@ -92,7 +88,8 @@ public class Apparition : Feat
     public Feat ArchetypeFeat;
     public QEffectId AttunedQID;
     public QEffectId DispersedQID;
-    public Apparition(FeatName attunedFeatName, FeatName primaryFeatName, FeatName archetypeFeatName, QEffectId apparitionQID, QEffectId dispersedQID, List<SpellId> spells, SpellId vesselSpell, string flavorText) : base(primaryFeatName, flavorText, GenerateRulesText(spells, vesselSpell), [AnimistTrait.ApparitionPrimary], null)
+    public Apparition(FeatName attunedFeatName, FeatName primaryFeatName, FeatName archetypeFeatName, QEffectId apparitionQID, QEffectId dispersedQID, List<SpellId> spells, SpellId vesselSpell, string flavorText) :
+        base(primaryFeatName, flavorText, GenerateRulesText(spells, vesselSpell), [AnimistTrait.ApparitionPrimary], null)
     {
         Skills = new List<Skill>();
         Spells = spells;
@@ -142,7 +139,7 @@ public class Apparition : Feat
             .WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.")
             .WithOnCreature(master =>
             {
-                if (master.HasEffect(Familiar.QDeadFamiliar))
+                if (Familiar.IsFamiliarDead(master))
                 {
                     master.AddQEffect(Disable(master));
                 }
@@ -166,9 +163,9 @@ public class Apparition : Feat
         FamiliarFeat.Traits.Remove(FamiliarFeats.TFamiliar);
         ArchetypeFeat = new Feat(archetypeFeatName, flavorText, GenerateRulesText(spells, null), [AnimistTrait.ApparitionArchetype], null)
             .WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration)
-            .WithPermanentQEffect("", q =>
+            .WithOnSheet(sheet =>
             {
-                q.CharacterSheetBecomesCreature = (sheet, creature) => creature.Spellcasting?.GetSourceByOrigin(AnimistTrait.Animist)?.AdditionalSpellsOnThisClassList.Add(SpellId.RayOfFrost);
+                sheet.PreparedSpells[AnimistTrait.Animist].AdditionalPreparableSpells.AddRange(spells);
             });
         WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.");
         ApparitionLUT.Add(this);
@@ -266,28 +263,6 @@ public class Apparition : Feat
 
     public static IEnumerable<Apparition> GetApparitions()
     {
-        //TODO: Is Crafter in the Vault even usable in DD?
-        /*
-        yield return new Apparition(AnimistFeat.CrafterInTheVault, AnimistFeat.CrafterInTheVaultPrimary, "", "")
-        {
-            Spells = new List<SpellId>()
-            {
-                //TODO
-            },
-            VesselSpell = ModManager.RegisterNewSpell("TravelingWorkshop", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
-            {
-                return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.Heal,
-                    "Traveling Workshop",
-                    [AnimistTrait.Animist, Trait.Focus, Trait.Manipulate],
-                    "",
-                    "",
-                    Target.Self(),
-                    spellLevel,
-                    null
-                );
-            })
-        };
-        */
         yield return new Apparition(AnimistFeat.CustodianOfGrovesAndGardens, AnimistFeat.CustodianOfGrovesAndGardensPrimary, AnimistFeat.CustodianOfGrovesAndGardensArchetype, AnimistQEffects.CustodianOfGrovesAndGardens, AnimistQEffects.CustodianOfGrovesAndGardensDispersed,
             new List<SpellId>()
             {
@@ -305,8 +280,8 @@ public class Apparition : Feat
                     [AnimistTrait.Animist, Trait.Aura, Trait.Emotion, Trait.Focus, Trait.Healing, Trait.Mental],
                     "Spirits of comfort and respite swirl around you, trailing visions of growing grass and blooming blossoms.",
                     @$"When you cast this spell and the first time you sustain it each subsequent round, you generate a pulse of renewing energy that heals each creature within the emanation for {S.HeightenedVariable(spellLevel, 1)}d4 Hit Points.
-The calm of this effect lingers; once this spell ends, any creature that has been affected by its healing gains a +1 circumstance bonus to saves against emotion effects but does not receive any healing from additional castings of the spell while the bonus persists.",
-                    Target.Emanation(2),
+                    The calm of this effect lingers; once this spell ends, any creature that has been affected by its healing gains a +1 circumstance bonus to saves against emotion effects but does not receive any healing from additional castings of the spell while the bonus persists.",
+                    Target.Emanation(2).WithAdditionalRequirementOnCaster(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? Usability.NotUsable("This effect is already active") : Usability.Usable),
                     spellLevel,
                     null
                 )
@@ -372,7 +347,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Focus],
                     "You store time for later use.",
                     "When you Cast this Spell and the first time you Sustain it each round, you gain a bonus reaction that you can use for any animist or apparition reaction you have.",
-                    Target.Self(null),
+                    Target.Self(null).WithAdditionalRestriction(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : null),
                     spellLevel,
                     null
                 )
@@ -385,7 +360,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         StartOfYourEveryTurn = async (q, self) =>
                         {
                             q.Tag = null;
-                        }
+                        },
                     }.WithSustaining(spell, AnimistQEffects.EchoOfLostMomentsDispersed);
                     caster.AddQEffect(qe);
                 });
@@ -407,7 +382,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Aura, Trait.Focus, Trait.Misfortune, Trait.Negative],
                     "You are surrounded by an aura of spiteful murmuring that incite bad luck and punish failure.",
                     $"Each creature that starts their turn within the area of this spell must succeed at a Will save or roll twice on their first attack roll that round and take the lower result. If an attack roll modified in this way results in a failure, the creature that rolled the failed attack takes {S.HeightenedVariable((spellLevel + 1) / 2, 1)}d6 damage.",
-                    Target.Emanation(1),
+                    Target.Emanation(1).WithAdditionalRequirementOnCaster(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? Usability.NotUsable("This effect is already active") : Usability.Usable),
                     spellLevel,
                     null
                 )
@@ -484,9 +459,9 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                         SelfTarget selfTarget = Target.Self();
                         if (variant.Id == "Shark")
                         {
-                            selfTarget.WithAdditionalRestriction((Creature self) => (!self.HasEffect(QEffectId.AquaticCombat)) ? "You can't transform into a shark above water." : null);
+                            selfTarget.WithAdditionalRestriction(self => (!self.HasEffect(QEffectId.AquaticCombat)) ? "You can't transform into a shark above water." : null);
                         }
-                        return selfTarget;
+                        return selfTarget.WithAdditionalRestriction(self => self.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : selfTarget.AdditionalRestriction?.Invoke(self));
                     }),
                     spellLevel,
                     null
@@ -650,7 +625,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Aura, Trait.Emotion, Trait.Focus, Trait.Incapacitation, Trait.Mental, Trait.Visual],
                     "Your apparition manifests as a mask of unearthly beauty that bewilders your enemies.",
                     "The first time an enemy enters the aura each round, or if they start their turn within the aura, they must succeed at a Will saving throw or become confused for 1 round. While confused by this effect, the creature's confused actions never include harming you.",
-                    Target.Emanation(2),
+                    Target.Emanation(2).WithAdditionalRequirementOnCaster(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? Usability.NotUsable("This effect is already active") : Usability.Usable),
                     spellLevel,
                     null
                 )
@@ -673,7 +648,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     .WithSustaining(spell, AnimistQEffects.MonarchOfTheFeyCourtsDispersed)
                     .WithZone(ZoneAttachment.Aura(2), (qe, zone) =>
                     {
-                        zone.TileEffectCreator = (Tile tl) => new TileQEffect(tl).WithOncePerRoundEffectWhenCreatureBeginsTurnOrEnters(zone, async cr =>
+                        zone.WithOncePerRoundEffectWhenCreatureBeginsTurnOrEnters(async cr =>
                         {
                             if (cr == cr.Battle.ActiveCreature && cr.EnemyOf(qe.Owner))
                             {
@@ -711,7 +686,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Focus, Trait.Illusion, Trait.Mental, Trait.Visual],
                     "You are surrounded by mirrors that reflect twisted and distorted images of you.",
                     $"You start with 1 mirror and gain an additional mirror each time you Sustain this spell, up to a maximum of 3 mirrors. Any attack that would hit you has a random chance of hitting one of your mirrors instead of you. With one mirror, the chances are 1 in 2 (1–3 on 1d6). With two mirrors, there is a 1 in 3 chance of hitting you (1–2 on 1d6). With three mirrors, there is a 1 in 4 chance of hitting you (1 on 1d4). Once an image is hit, it is destroyed. If an attack roll fails to hit your AC but doesn’t critically fail, it destroys a mirror. If the attacker was within 5 feet, they must succeed at a basic Will save or take {S.HeightenedVariable(spellLevel, 1)}d4 mental damage as they believe themselves cut by a shower of glass shards from the breaking mirror. A damaging effect that affects all targets within your space (such as caustic blast) destroys all of the mirrors.",
-                    Target.Self(null),
+                    Target.Self(null).WithAdditionalRestriction(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : null),
                     spellLevel,
                     null
                 )
@@ -781,7 +756,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Focus, Trait.Polymorph],
                     "Your apparition casts a feral shadow over your form.",
                     "You can polymorph into any form listed in {i}insect form{/i}. When you transform into a form granted by a spell, you gain all the effects of the form you chose from a version of the spell heightened to {i}darkened forest form{/i}’s rank. Each time you Sustain this Spell, you can choose to change to a different shape from those available via any of the associated spells.",
-                    Target.Self(null),
+                    Target.Self(null).WithAdditionalRestriction(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : null),
                     spellLevel,
                     null
                 )
@@ -914,7 +889,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Earth, Trait.Fire, Trait.Focus],
                     "Your apparition is the will of lava and magma made manifest, the earth’s molten blood unleashing devastating bursts of liquid stone and unquenchable fire at your command.",
                     $"When you Cast this Spell and the first time you Sustain it each round thereafter, choose an area within range. Each creature in the area takes {S.HeightenedVariable((spellLevel + 1) / 2, 1)}d4 fire damage, {S.HeightenedVariable((spellLevel + 1) / 2, 1)}d4 bludgeoning damage, and {S.HeightenedVariable((spellLevel + 1) / 2, 1)} persistent fire damage (the persistent fire damage is negated on a successful save).",
-                    Target.Burst(6, 2),
+                    Target.Burst(6, 2).WithAdditionalRequirementOnCaster(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? Usability.NotUsable("This effect is already active") : Usability.Usable),
                     spellLevel,
                     SpellSavingThrow.Basic(Defense.Reflex)
                 )
@@ -977,7 +952,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Focus, Trait.Water],
                     "Your apparition solidifies around you into roaring water and spraying mist.",
                     "For the duration of this spell, you have lesser cover against ranged attacks and gain a +10-foot status bonus to each Speed you have. When you first cast this spell and each time you Sustain it, you can Stride up to your speed while your apparition fills each square you pass through with the lingering energy of a coursing river. These squares become difficult terrain until the start of your next turn. You can use river carving mountains while Burrowing, Climbing, Flying, or Swimming instead of Striding if you have the corresponding movement type.",
-                    Target.Self(null),
+                    Target.Self(null).WithAdditionalRestriction(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : null),
                     spellLevel,
                     null
                 )
@@ -1035,7 +1010,7 @@ The calm of this effect lingers; once this spell ends, any creature that has bee
                     [AnimistTrait.Animist, Trait.Focus],
                     "Your apparition guides your attacks and imparts its skill to your movements.",
                     $"For the duration, your proficiency with martial weapons is equal to your proficiency with simple weapons, you gain a +{S.HeightenedVariable(bonus, 1)} status bonus to attack and damage rolls made with weapons or unarmed attacks, and you gain the Attack Of Opportunity reaction (page 37); this reaction gains the apparition trait. The instincts of an apparition of battle run contrary to the use of magic; for the duration of this spell, you take a –2 status penalty to your spell attack modifiers and your spell DCs.",
-                    Target.Self(null),
+                    Target.Self(null).WithAdditionalRestriction(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : null),
                     spellLevel,
                     null
                 )

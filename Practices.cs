@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Core.CharacterBuilder.Selections.Options;
+using Dawnsbury.Core.CombatActions;
 using Dawnsbury.Core.Mechanics.Core;
 using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Core.Possibilities;
-using Dawnsbury.Modding;
 using Dawnsbury.Mods.Classes.Animist.Apparitions;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
@@ -29,7 +28,7 @@ public static class Practice
                 {
                     q.AfterYouTakeAction = async (q, action) =>
                     {
-                        if (action.ActionId == Core.CombatActions.ActionId.Leap || action.ActionId == Core.CombatActions.ActionId.Step || action.ActionId == Core.CombatActions.ActionId.TumbleThrough)
+                        if (action.ActionId == ActionId.Leap || action.ActionId == ActionId.Step || action.ActionId == ActionId.TumbleThrough)
                         {
                             var spells = Possibilities.Create(q.Owner).Filter(possibility =>
                             {
@@ -43,13 +42,13 @@ public static class Practice
                             });
                             if (spells.ActionCount > 0)
                             {
-                                var actions = spells.CreateActions(true);
-                                var choice = await q.Owner.AskForChoiceAmongButtons(action.Illustration, "Choose a spell to sustain from your Dancing Invocation.",
-                                    [.. from act in actions select act.Action.ReferencedQEffect?.Name ?? act.Action.Name, "None"]);
-                                if (choice.Index < actions.Count())
-                                {
-                                    await q.Owner.Battle.GameLoop.FullCast(actions[choice.Index].Action);
-                                }
+                                var active = q.Owner.Battle.ActiveCreature;
+                                q.Owner.Battle.ActiveCreature = q.Owner;
+                                q.Owner.Possibilities = spells;
+                                var options = await q.Owner.Battle.GameLoop.CreateActions(q.Owner, q.Owner.Possibilities, null);
+                                q.Owner.Battle.GameLoopCallback.AfterActiveCreaturePossibilitiesRegenerated();
+                                await q.Owner.Battle.GameLoop.OfferOptions(q.Owner, options, true);
+                                q.Owner.Battle.ActiveCreature = active;
                             }
                         }
                     };
@@ -85,7 +84,7 @@ public static class Practice
                     q.BonusToDefenses = (qe, action, defense) =>
                     {
                         if ((action != null) && ((action.Owner.HasTrait(Trait.Undead) && action.Owner.HasTrait(Trait.Incorporeal)) ||
-                                (ModManager.TryParse<Trait>("Haunt", out var haunt) && (action.Owner.HasTrait(haunt) || action.HasTrait(haunt)))))
+                                (action.Owner.HasTrait(Trait.Haunt) || action.HasTrait(Trait.Haunt))))
                         {
                             return new Bonus(1, BonusType.Status, "Invocation of Sight", true);
                         }
@@ -100,7 +99,7 @@ public static class Practice
                     q.BonusToDefenses = (qe, action, defense) =>
                     {
                         if ((action != null) && ((action.Owner.HasTrait(Trait.Undead) && action.Owner.HasTrait(Trait.Incorporeal)) ||
-                                (ModManager.TryParse<Trait>("Haunt", out var haunt) && (action.Owner.HasTrait(haunt) || action.HasTrait(haunt)))))
+                                (action.Owner.HasTrait(Trait.Haunt) || action.HasTrait(Trait.Haunt))))
                         {
                             return new Bonus(2, BonusType.Status, "Invocation of Protection", true);
                         }

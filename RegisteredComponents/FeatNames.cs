@@ -90,5 +90,10 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly FeatName WindSeeker = ModManager.RegisterFeatName("Wind Seeker");
         // 10th
         public static readonly FeatName IncredibleFamiliar = ModManager.RegisterFeatName("IncredibleFamiliarAnimist", "Incredible Familiar");
+
+        // Archetype
+        public static readonly FeatName SpiritualAwakening = ModManager.RegisterFeatName("SpiritualAwakening", "Spiritual Awakening");
+        public static readonly FeatName AnimistsPower = ModManager.RegisterFeatName("AnimistsPower", "Animist's Power");
+        public static readonly FeatName ApparitionMagic = ModManager.RegisterFeatName("ApparitionMagic", "Apparition Magic");
     }
 }
