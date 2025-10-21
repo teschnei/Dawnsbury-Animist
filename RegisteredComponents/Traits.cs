@@ -13,6 +13,5 @@ namespace Dawnsbury.Mods.Classes.Animist.RegisteredComponents
         public static readonly Trait Familiar = ModManager.RegisterTrait("ApparitionFamiliar", new TraitProperties("Apparation Familiar", false));
         public static readonly Trait Wandering = ModManager.RegisterTrait("Wandering", new TraitProperties("Wandering", true));
         public static readonly Trait Spellshape = ModManager.RegisterTrait("Spellshape", new TraitProperties("Spellshape", true));
-        public static readonly Trait Invocation = ModManager.RegisterTrait("PracticeInvocation", new TraitProperties("Invocation", false));
     }
 }

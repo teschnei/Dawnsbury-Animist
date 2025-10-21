@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dawnsbury.Auxiliary;
 using Dawnsbury.Core;
 using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Core.CharacterBuilder.FeatsDb.Kineticist;
@@ -30,6 +31,13 @@ public static class Level1
                 [AnimistTrait.Animist, Trait.Divine])
             .WithPermanentQEffect("You have apparition sight, an imprecise sense that allows you to detect the presence of invisible or hidden spirits, haunts, and undead within 30 feet of you.", q =>
             {
+                q.StateCheck = q =>
+                {
+                    q.Owner.Battle.AllCreatures.Where(cr => cr.EnemyOf(q.Owner) && cr.DistanceTo(q.Owner) <= 6 && (cr.HasTrait(Trait.Haunt) || cr.HasTrait(Trait.Undead) || cr.HasTrait(Trait.Incorporeal))).ForEach(cr =>
+                    {
+                        cr.DetectionStatus.Undetected = false;
+                    });
+                };
             });
         yield return new TrueFeat(AnimistFeat.ChannelersStance, 1,
                 "You enter a stance that allows power to flow through you.",

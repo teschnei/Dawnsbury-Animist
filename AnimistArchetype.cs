@@ -68,8 +68,11 @@ public static class AnimistArchetype
             .WithPrerequisite(basicSpellCasting.FeatName, "Basic Animist Spellcasting")
             .WithOnSheet(sheet =>
             {
-                var newSlots = sheet.PreparedSpells[AnimistTrait.Animist].Slots.Select(slot => slot.SpellLevel).Distinct().Order().SkipLast(2);
-                sheet.PreparedSpells[AnimistTrait.Animist].Slots.AddRange(newSlots.Where(level => level != 0).Select(level => new ApparitionPreparedSpellSlot(level, $"ApparitionMagic{level}")));
+                if (sheet.PreparedSpells.ContainsKey(AnimistTrait.Animist))
+                {
+                    var newSlots = sheet.PreparedSpells[AnimistTrait.Animist].Slots.Select(slot => slot.SpellLevel).Distinct().Order().SkipLast(2);
+                    sheet.PreparedSpells[AnimistTrait.Animist].Slots.AddRange(newSlots.Where(level => level != 0).Select(level => new ApparitionPreparedSpellSlot(level, $"ApparitionMagic{level}")));
+                }
             });
     }
 }

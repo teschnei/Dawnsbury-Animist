@@ -699,7 +699,8 @@ public class Apparition : Feat
                     var qe = new QEffect(spell.Name, "If you have a mirror and when somebody attacks you:\n• If it's a miss, it destroys one of the mirrors.\n• If it's a hit, it hits you or one of the mirrors at random. If it hits a mirror, it destroys that mirror but counts as a miss against you.\n• If it's a critical hit, it destroys a mirror and counts as a hit against you.\nIn any case a mirror is destroyed, if the attacker was within 5 feet, they must succeed a Will save or take damage from the illusion shattering.", ExpirationCondition.ExpiresAtEndOfYourTurn, caster, spell.Illustration)
                     {
                         Id = AnimistQEffects.TrickstersMirrors,
-                        CannotExpireThisTurn = true
+                        CannotExpireThisTurn = true,
+                        WhenExpires = q => q.Owner.RemoveAllQEffects(q => q.Id == QEffectId.MirrorImage && q.ReferencedSpell == spell)
                     }.WithSustaining(spell, AnimistQEffects.RevelerInLostGleeDispersed, async q =>
                     {
                         if (q.Owner.QEffects.Where(q => q.Id == QEffectId.MirrorImage && q.ReferencedSpell == spell).FirstOrDefault() is { } qe)

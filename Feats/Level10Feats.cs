@@ -12,7 +12,7 @@ public static class Level10
     public static IEnumerable<Feat> CreateFeats()
     {
         yield return new TrueFeat(AnimistFeat.IncredibleFamiliar, 10,
-                "Your connection to your apparitoin and your mastery of spiritual magic reach a new threshold that allows you to channel even more power into the physical form you allot it to take on as your familiar.",
+                "Your connection to your apparition and your mastery of spiritual magic reach a new threshold that allows you to channel even more power into the physical form you allot it to take on as your familiar.",
                 "You can select a base of six familiar or master abilities each day, instead of four.",
                 [AnimistTrait.Animist])
             .WithPrerequisite(AnimistFeat.EnhancedFamiliar, "Enhanced Familiar")

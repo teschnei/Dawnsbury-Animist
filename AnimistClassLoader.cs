@@ -65,14 +65,5 @@ public static class AnimistClassLoader
                 )
             ))
         );
-        CreatureStatblock.CreatureStatblockSectionGenerators.Insert(index,
-            new("Invocations", cr => String.Join("\n",
-                String.Join("\n",
-                    from f in cr.PersistentCharacterSheet?.Calculated.AllFeats ?? []
-                    where f.HasTrait(AnimistTrait.Invocation)
-                    select $"{{b}}{f.DisplayName(cr.PersistentCharacterSheet!)}:{{/b}} {f.RulesText}"
-                )
-            ))
-        );
     }
 }

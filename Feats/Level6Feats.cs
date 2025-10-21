@@ -80,22 +80,7 @@ public static class Level6
                                     reductionType = damage.DamageKind;
                                 }
                             }
-                            if (qe.Owner.HasEffect(AnimistQEffects.StoreTimeReaction) && !qe.Owner.HasEffect(AnimistQEffects.StoreTimeReactionUsed))
-                            {
-                                if (await qe.Owner.Battle.AskForConfirmation(qe.Owner, IllustrationName.Reaction, $"You're about to be hit by {damageEvent.CombatAction.Name}.\nUse Blazing Spirit to reduce the damage by {maximumDamageReduction} and deal damage in retaliation?", "{icon:Reaction} Take reaction", "Pass"))
-                                {
-                                    await ApplyEffect();
-                                    qe.Owner.AddQEffect(new QEffect(ExpirationCondition.ExpiresAtStartOfYourTurn)
-                                    {
-                                        Id = AnimistQEffects.StoreTimeReactionUsed
-                                    });
-                                }
-                            }
-                            else if (await qe.Owner.Battle.AskToUseReaction(qe.Owner, $"You're about to be hit by {damageEvent.CombatAction.Name}.\nUse Blazing Spirit to reduce the damage by {maximumDamageReduction} and deal damage in retaliation?"))
-                            {
-                                await ApplyEffect();
-                            }
-                            async Task ApplyEffect()
+                            if (await qe.Owner.Battle.AskToUseReaction(qe.Owner, $"You're about to be hit by {damageEvent.CombatAction.Name}.\nUse Blazing Spirit to reduce the damage by {maximumDamageReduction} and deal damage in retaliation?", [AnimistTrait.Apparition]))
                             {
                                 damageEvent.KindedDamages.Where(k => k.DamageKind == reductionType).FirstOrDefault()!.ResolvedDamage -= maximumDamageReduction;
                                 CombatAction action = new CombatAction(qe.Owner, IllustrationName.None, "Blazing Spirit", [Trait.Divine, Trait.Fire], "", Target.Uncastable());
