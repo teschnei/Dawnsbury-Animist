@@ -1,12 +1,10 @@
 using System;
 using System.Linq;
-using Dawnsbury.Core.CharacterBuilder.Selections.Options;
 using Dawnsbury.Core.CharacterBuilder.Spellcasting;
 using Dawnsbury.Core.CombatActions;
 using Dawnsbury.Core.Creatures;
 using Dawnsbury.Core.Mechanics;
 using Dawnsbury.Core.Mechanics.Core;
-using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Modding;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using HarmonyLib;
@@ -27,79 +25,6 @@ static class AoOPatch
             __instance.Occupies.Battle.Log($"{__instance?.ToString()} {(succeeded ? "{Green}succeeds{/}" : "{Red}fails{/}")} an apparition stabilization flat check vs. DC {dc} to keep the spell ({message})");
             combatAction.Disrupted = !succeeded;
         }
-    }
-}
-
-[HarmonyPatch(typeof(CombatAction), nameof(CombatAction.WithCastsAsAReaction), [typeof(Action<QEffect, CombatAction, Func<bool>>)])]
-static class StoreTimePatch
-{
-    static bool Prefix(CombatAction __instance, Action<QEffect, CombatAction, Func<bool>> action, ref CombatAction __result)
-    {
-        __instance.WhenCombatBegins = delegate (Creature creature)
-        {
-            QEffect qEffect = new QEffect();
-            creature.AddQEffect(qEffect);
-            action(qEffect, __instance, delegate
-            {
-                __instance.Owner = creature;
-                if (__instance.HasTrait(Trait.Impulse))
-                {
-                    if (creature.Impulsing != null)
-                    {
-                        return creature.Impulsing.CanInvokeReactiveImpulse(__instance);
-                    }
-                    return false;
-                }
-                if (creature.Spellcasting != null)
-                {
-                    if (__instance.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition &&
-                        creature.HasEffect(AnimistQEffects.StoreTimeReaction) &&
-                        !creature.HasEffect(AnimistQEffects.StoreTimeReactionUsed))
-                    {
-                        creature.QEffects.Where(q => q.Id == AnimistQEffects.StoreTimeReaction).FirstOrDefault()!.Tag = __instance;
-                        return true;
-                    }
-                    return creature.Spellcasting.CanCastReactiveSpell(__instance);
-                }
-                return false;
-            });
-        };
-        __result = __instance;
-        return false;
-    }
-}
-
-[HarmonyPatch(typeof(Actions), nameof(Actions.CanTakeReaction), [])]
-static class StoreTimePatch2
-{
-    static void Postfix(ref bool __result, Creature ___creature)
-    {
-        if (__result == false)
-        {
-            if (___creature.QEffects.Where(q => q.Id == AnimistQEffects.StoreTimeReaction).FirstOrDefault()?.Tag is CombatAction action)
-            {
-                //Reaction is a spell usable by Store Time
-                __result = true;
-            }
-        }
-    }
-}
-
-[HarmonyPatch(typeof(Actions), nameof(Actions.UseUpReaction), [])]
-static class StoreTimePatch3
-{
-    static bool Prefix(Creature ___creature)
-    {
-        if (___creature.QEffects.Where(q => q.Id == AnimistQEffects.StoreTimeReaction).FirstOrDefault()?.Tag is CombatAction action)
-        {
-            ___creature.AddQEffect(new QEffect(ExpirationCondition.ExpiresAtStartOfYourTurn)
-            {
-                Id = AnimistQEffects.StoreTimeReactionUsed
-            });
-            //Don't use up the reaction since Store Time was used instead
-            return false;
-        }
-        return true;
     }
 }
 

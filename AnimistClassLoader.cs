@@ -65,5 +65,13 @@ public static class AnimistClassLoader
                 )
             ))
         );
+
+        ModManager.RegisterActionOnEachActionPossibility(action =>
+        {
+            if (action.SpellcastingSource?.ClassOfOrigin == AnimistTrait.Apparition)
+            {
+                action.Traits.Add(AnimistTrait.Apparition);
+            }
+        });
     }
 }

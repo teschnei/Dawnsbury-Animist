@@ -1000,9 +1000,9 @@ public class Apparition : Feat
             {
                 GetSpell("Shield", SpellId.Shield),
                 GetSpell("SureStrike", SpellId.TrueStrike),
-                GetSpell("Enlarge", SpellId.CladInMetal),
-                GetSpell("GhostlyWeapon", SpellId.DeflectCriticalHit),
-                GetSpell("WeaponStorm", SpellId.Stoneskin),
+                GetSpell("Enlarge", SpellId.Enlarge),
+                GetSpell("GhostlyWeapon", SpellId.GhostlyWeapon),
+                GetSpell("WeaponStorm", SpellId.ReboundingBarrier),
                 GetSpell("InvokeSpirits", SpellId.BlinkCharge),
             },
             ModManager.RegisterNewSpell("EmbodimentOfBattle", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
