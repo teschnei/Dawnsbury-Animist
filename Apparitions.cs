@@ -544,7 +544,8 @@ public class Apparition : Feat
                         {
                             selfTarget.WithAdditionalRestriction(self => (!self.HasEffect(QEffectId.AquaticCombat)) ? "You can't transform into a shark above water." : null);
                         }
-                        return selfTarget.WithAdditionalRestriction(self => self.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : selfTarget.AdditionalRestriction?.Invoke(self));
+                        var previousRestriction = selfTarget.AdditionalRestriction;
+                        return selfTarget.WithAdditionalRestriction(self => self.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : previousRestriction?.Invoke(self));
                     }),
                     spellLevel,
                     null
@@ -835,30 +836,29 @@ public class Apparition : Feat
             },
             ModManager.RegisterNewSpell("DarkenedForestForm", 1, (spellId, spellCaster, spellLevel, inCombat, spellInformation) =>
             {
+                List<SpellVariant> variants = [new SpellVariant("INSECT", "Insect", IllustrationName.InsectFormPortrait)];
+                if (spellLevel >= 2)
+                {
+                    variants.AddRange(AllSpells.CreateModernSpell(SpellId.AnimalForm, spellCaster, spellLevel, inCombat: true, spellInformation).CombatActionSpell.Variants!);
+                }
+                if (spellLevel >= 5)
+                {
+                    variants.AddRange(AllSpells.CreateModernSpell(SpellId.ElementalForm, spellCaster, spellLevel, inCombat: true, spellInformation).CombatActionSpell.Variants!);
+                }
                 return Core.CharacterBuilder.FeatsDb.Spellbook.Spells.CreateModern(IllustrationName.WildShape,
                     "Darkened Forest Form",
                     [AnimistTrait.Animist, Trait.Focus, Trait.Polymorph],
                     "Your apparition casts a feral shadow over your form.",
                     "You can polymorph into any form listed in {i}insect form{/i}. When you transform into a form granted by a spell, you gain all the effects of the form you chose from a version of the spell heightened to {i}darkened forest form{/i}’s rank. Each time you Sustain this Spell, you can choose to change to a different shape from those available via any of the associated spells.",
-                    Target.Self(null).WithAdditionalRestriction(caster => caster.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId) ? "This effect is already active" : null),
+                    Target.DependsOnSpellVariant(variant =>
+                        GetSubspellTargetWithRestriction(variant, user => (user.QEffects.Any(q => q.ReferencedSpell?.SpellId == spellId)) ? "This effect is already active" : null)
+                    ),
                     spellLevel,
                     null
                 )
                 .WithHeightenedAtSpecificLevels(spellLevel, inCombat, [2, 5], ["You can also transform into the forms listed in {i}animal form{/i}.", "You can also transform into the forms listed in {i}elemental form{/i}."])
                 .WithActionCost(1)
-                .WithVariantsCreator(caster =>
-                {
-                    List<SpellVariant> variants = [new SpellVariant("INSECT", "Insect", IllustrationName.InsectFormPortrait)];
-                    if (spellLevel >= 2)
-                    {
-                        variants.AddRange(AllSpells.CreateModernSpell(SpellId.AnimalForm, caster, spellLevel, inCombat: true, spellInformation).CombatActionSpell.Variants!);
-                    }
-                    if (spellLevel >= 5)
-                    {
-                        variants.AddRange(AllSpells.CreateModernSpell(SpellId.ElementalForm, caster, spellLevel, inCombat: true, spellInformation).CombatActionSpell.Variants!);
-                    }
-                    return variants.ToArray();
-                })
+                .WithVariants(variants.ToArray())
                 .WithCreateVariantDescription((_, variant) =>
                 {
                     if (variant != null)
@@ -875,14 +875,11 @@ public class Apparition : Feat
                 void ApplyDarkenedForestForm(CombatAction spell, SpellVariant variant, Creature caster)
                 {
                     caster.RemoveAllQEffects(qe => qe.ReferencedSpell == spell);
-                    var oldTempHP = caster.TemporaryHP;
 
                     var (subspell, subspellVariant) = GetSpellAndVariantFromVariant(variant);
                     subspell.ChosenVariant = subspellVariant;
                     subspell.ChosenTargets = ChosenTargets.CreateSingleTarget(caster);
                     subspell.WithActionCost(0).AllExecute();
-
-                    caster.TemporaryHP = oldTempHP;
 
                     QEffect? form = caster.QEffects.Where(q => q.Name == "Battleform").FirstOrDefault();
                     if (form != null)
@@ -909,10 +906,9 @@ public class Apparition : Feat
                             [
                                 new PossibilitySection($"Change {spell.Name} Form")
                                 {
-                                    Possibilities = spell.VariantsCreator!(caster).ExceptBy([variant.Id], var => var.Id).Select(variant =>
+                                    Possibilities = variants.ExceptBy([variant.Id], var => var.Id).Select(variant =>
                                         new ActionPossibility(new CombatAction(caster, variant.Illustration, $"{spell.Name} ({variant.Name})",
-                                                    [Trait.Concentrate, Trait.SustainASpell, Trait.Basic, Trait.DoesNotBreakStealth, AnimistTrait.Apparition], spell.CreateVariantDescription!(1, variant), Target.Self()
-                                            .WithAdditionalRestriction(self =>
+                                                    [Trait.Concentrate, Trait.SustainASpell, Trait.Basic, Trait.DoesNotBreakStealth, AnimistTrait.Apparition], spell.CreateVariantDescription!(1, variant), GetSubspellTargetWithRestriction(variant, self =>
                                             {
                                                 if (!self.Spellcasting!.GetSourceByOrigin(AnimistTrait.Apparition)!.FocusSpells.Exists(sp => sp.SpellId == spell.SpellId))
                                                 {
@@ -954,6 +950,28 @@ public class Apparition : Feat
                         return (animalForm, animalFormVariant);
                     }
                     return (AllSpells.CreateModernSpell(SpellId.InsectForm, spellCaster, spellLevel, inCombat: true, spellInformation).CombatActionSpell, null);
+                }
+                Target GetSubspellTargetWithRestriction(SpellVariant variant, Func<Creature, string?> additionalRestriction)
+                {
+                    var (subspell, subspellVariant) = GetSpellAndVariantFromVariant(variant);
+                    SelfTarget? selfTarget = null;
+                    if (subspellVariant != null && subspell.Target is DependsOnSpellVariantTarget variantTarget && variantTarget.SelectTargetFromVariant(subspellVariant) is SelfTarget st)
+                    {
+                        selfTarget = st;
+                    }
+                    if (subspell.Target is SelfTarget st2)
+                    {
+                        selfTarget = st2;
+                    }
+                    if (selfTarget != null)
+                    {
+                        var existingRestriction = selfTarget.AdditionalRestriction;
+                        return selfTarget.WithAdditionalRestriction(user =>
+                        {
+                            return additionalRestriction.Invoke(user) ?? existingRestriction?.Invoke(user);
+                        });
+                    }
+                    return subspell.Target;
                 }
             }), "Stalkers in darkened boughs make their homes in ancient forests and jungles unfriendly to humanoids and others who would exert control or influence over nature’s designs. These apparitions are drawn to animists who harbor violent thoughts or impulses but are more likely to linger with animists who can quell their hatred. Stalkers in darkened boughs are moody, impulsive, and prone to seeing things from the least charitable perspective.");
         yield return new Apparition(AnimistFeat.StewardOfStoneAndFire, AnimistFeat.StewardOfStoneAndFirePrimary, AnimistFeat.StewardOfStoneAndFireArchetype, AnimistQEffects.StewardOfStoneAndFire, AnimistQEffects.StewardOfStoneAndFireDispersed,
