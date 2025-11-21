@@ -192,14 +192,14 @@ public static class Level1
         yield return new TrueFeat(AnimistFeat.SpiritFamiliar, 1,
                 "You can dedicate a small amount of your life force to allow one of your apparitions to physically manifest as a familiar",
                 "When you attune to your apparitions during your daily preparations, you can choose to dedicate a small amount of your life force to allow one of them to physically manifest as a familiar, which gains the spirit trait. If your familiar is slain or destroyed, you lose all other benefits from the apparition until you remanifest the familiar during your next daily preparations. If you disperse the apparition you have manifested as a familiar, the familiar is destroyed.",
-                [AnimistTrait.Animist])
-            .WithEquivalent(sheet => sheet.HasFeat(Familiars.ClassFeats.FNFamiliar))
+                [AnimistTrait.Animist, Trait.Rebalanced])
+            .WithEquivalent(sheet => sheet.HasFeat(FeatName.ClassFamiliar))
             .WithOnSheet(sheet =>
             {
                 var attunedApparitions = Apparition.ApparitionLUT.Where(apparition => sheet.AllFeats.Contains(apparition.AttunedFeat));
-                sheet.AddSelectionOption(new SingleFeatSelectionOption("Familiar", "Familiar", SelectionOption.MORNING_PREPARATIONS_LEVEL, feat =>
+                sheet.AddSelectionOption(new SingleFeatSelectionOption("ApparitionFamiliar", "Spirit Familiar", SelectionOption.MORNING_PREPARATIONS_LEVEL, feat =>
                     attunedApparitions.Any(apparition => apparition?.FamiliarFeat == feat)
-                ));
+                ).WithIsOptional());
             })
             .WithPermanentQEffect("You can dedicate a small amount of your life force to allow one of your apparitions to physically manifest as a familiar", q => { });
     }

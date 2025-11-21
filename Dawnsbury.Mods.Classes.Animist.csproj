@@ -23,7 +23,6 @@
         <Reference Include="/home/juna/.steam/steam/steamapps/common/Dawnsbury Days/Data/Common.dll" />
         <Reference Include="/home/juna/.steam/steam/steamapps/common/Dawnsbury Days/Data/MonoGame.Framework.dll" />
         <Reference Include="/home/juna/.steam/steam/steamapps/common/Dawnsbury Days/Data/MonoGame.Framework.dll" />
-        <Reference Include="/home/juna/.steam/steam/steamapps/workshop/content/2693730/3508129973/CustomMods/Dawnsbury.Mods.Familiars.dll" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="lib.harmony" Version="2.3.6" />

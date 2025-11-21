@@ -11,6 +11,7 @@ using Dawnsbury.Core.CombatActions;
 using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Core.CharacterBuilder.FeatsDb.Common;
 using Dawnsbury.Core.CharacterBuilder.FeatsDb.Spellbook;
+using Dawnsbury.Core.CharacterBuilder.FeatsDb.TrueFeatDb.Specific;
 using Dawnsbury.Core.CharacterBuilder.Spellcasting;
 using Dawnsbury.Core.Creatures;
 using Dawnsbury.Core.Intelligence;
@@ -19,6 +20,7 @@ using Dawnsbury.Core.Mechanics;
 using Dawnsbury.Core.Mechanics.Core;
 using Dawnsbury.Core.Mechanics.Damage;
 using Dawnsbury.Core.Mechanics.Enumerations;
+using Dawnsbury.Core.Mechanics.ReactiveAttacks;
 using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Mechanics.Targeting.TargetingRequirements;
 using Dawnsbury.Core.Mechanics.Targeting.Targets;
@@ -31,8 +33,10 @@ using Dawnsbury.Display.Text;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
 using Dawnsbury.Modding;
 using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
-using Dawnsbury.Mods.Familiars;
-using Dawnsbury.Core.Mechanics.ReactiveAttacks;
+using Dawnsbury.Core.CharacterBuilder.Selections.Options;
+using Dawnsbury.Display.Controls.Portraits;
+using Dawnsbury.Core.CharacterBuilder;
+using Dawnsbury.Display.Illustrations;
 
 namespace Dawnsbury.Mods.Classes.Animist.Apparitions;
 
@@ -136,32 +140,87 @@ public class Apparition : Feat
                 q.Id = AttunedQID;
                 q.Tag = false;
             });
-        FamiliarFeat = FamiliarFeats.CreateFamiliarFeat(attunedFeatName.HumanizeTitleCase2(), AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration, [])
-            .WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.")
-            .WithOnCreature(master =>
+        /*
+    FamiliarFeat = FamiliarFeats.CreateFamiliarFeat(attunedFeatName.HumanizeTitleCase2(), AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration, [])
+        .WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.")
+        .WithOnCreature(master =>
+        {
+            if (Familiar.IsFamiliarDead(master))
             {
-                if (Familiar.IsFamiliarDead(master))
+                master.AddQEffect(Disable(master));
+            }
+            return new QEffect()
+            {
+                AfterYouAcquireEffect = async (q, gained) =>
                 {
-                    master.AddQEffect(Disable(master));
-                }
-                return new QEffect()
-                {
-                    AfterYouAcquireEffect = async (q, gained) =>
+                    if (gained.Id == Familiar.QFamiliarDeployed)
                     {
-                        if (gained.Id == Familiar.QFamiliarDeployed)
+                        Familiar.GetFamiliar(master)?.AddQEffect(new QEffect()
                         {
-                            Familiar.GetFamiliar(master)?.AddQEffect(new QEffect()
-                            {
-                                Id = AnimistQEffects.SpiritFamiliar,
-                                WhenMonsterDies = q => master.AddQEffect(Disable(master)),
-                                Tag = attunedFeatName
-                            });
-                            q.ExpiresAt = ExpirationCondition.Immediately;
+                            Id = AnimistQEffects.SpiritFamiliar,
+                            WhenMonsterDies = q => master.AddQEffect(Disable(master)),
+                            Tag = attunedFeatName
+                        });
+                        q.ExpiresAt = ExpirationCondition.Immediately;
+                    }
+                }
+            };
+        });
+    FamiliarFeat.Traits.Remove(FamiliarFeats.TFamiliar);
+    */
+        FamiliarFeat = new Feat(ModManager.RegisterFeatName(attunedFeatName.ToStringOrTechnical() + "Familiar", attunedFeatName.HumanizeTitleCase2()), "A familiar is a small creature, a magical spirit, or an alchemical creation that dutifully serves you.", "You gain a combat familiar. A combat familiar is not a creature in its own right. It can't be targeted or dealt damage, it always sits in your space, and it participates in combat only by aiding you with familiar abilities.\r\n\r\nDuring morning preparations, you choose two familiar abilities and you gain the benefits of those abilities for that day. Familiar abilities give you passive bonuses or familiar actions. Familiar actions cost {icon:Action}one action, but you can only take one familiar action each turn.", [Trait.Rebalanced], null)
+            .WithPrerequisite(sheet => sheet.HasFeat(AttunedFeat), "You must be attuned to this apparition.")
+            .WithEquivalent(values => values.Tags.ContainsKey("CombatFamiliar"))
+            .WithOnSheet(values =>
+            {
+                FamiliarTag familiarTag = new FamiliarTag();
+                values.Tags["CombatFamiliar"] = familiarTag;
+                familiarTag.FamiliarAbilities = 2 + (values.HasFeat(AnimistFeat.EnhancedFamiliar) ? 2 : 0) + (values.HasFeat(AnimistFeat.IncredibleFamiliar) ? 2 : 0);
+                values.AddSelectionOptionRightNow(new SingleFeatSelectionOption("FamiliarIllustrationDisplay", "Show familiar", SelectionOption.MORNING_PREPARATIONS_LEVEL, (Feat ft) => ft.HasTrait(Trait.FamiliarIllustrationDisplay)).WithIsOptional());
+                values.AddSelectionOptionRightNow(new CompanionIdentitySelectionOption(
+                    "FamiliarName",
+                    "Familiar identity",
+                    SelectionOption.MORNING_PREPARATIONS_LEVEL,
+                    $"You can name your familiar.\n\nIf you don't choose a name, it will be called {{b}}{attunedFeatName.HumanizeTitleCase2()}{{/b}}.",
+                    attunedFeatName.HumanizeTitleCase2(),
+                    IllustrationName.FamiliarFlameFairy,
+                    [
+                        PortraitCategory.Familiars,
+                        PortraitCategory.AnimalCompanions,
+                        PortraitCategory.Custom
+                    ],
+                    (val, txt) =>
+                    {
+                        if (val.Tags.TryGetValue("CombatFamiliar", out var value) && value is FamiliarTag familiarTag2)
+                        {
+                            CompanionIdentitySelectionOption.SetFamiliarDataFromSection(familiarTag2, txt);
                         }
                     }
-                };
+                ).WithIsOptional());
+                if (values.Tags.TryGetValue("CombatFamiliar", out var value) && value is FamiliarTag familiarTag2)
+                {
+                    values.AddSelectionOptionRightNow(new MultipleFeatSelectionOption("FamiliarAbilities", "Familiar abilities", SelectionOption.MORNING_PREPARATIONS_LEVEL, delegate (Feat ft, CalculatedCharacterSheetValues calculatedCharacterSheetValues)
+                    {
+                        if (ft.HasTrait(Trait.CombatFamiliarAbility))
+                        {
+                            if (ft.Tag is Trait trait && !calculatedCharacterSheetValues.AdditionalClassTraits.Contains(trait))
+                            {
+                                ClassSelectionFeat? classSelectionFeat = calculatedCharacterSheetValues.Class;
+                                if (classSelectionFeat == null)
+                                {
+                                    return false;
+                                }
+                                return classSelectionFeat.ClassTrait == trait;
+                            }
+                            return true;
+                        }
+                        return false;
+                    }, familiarTag2.FamiliarAbilities)
+                    {
+                        DoNotApplyEffectsInsteadOfRemovingThem = true
+                    });
+                }
             });
-        FamiliarFeat.Traits.Remove(FamiliarFeats.TFamiliar);
         ArchetypeFeat = new Feat(archetypeFeatName, flavorText, GenerateRulesText(spells, null), [AnimistTrait.ApparitionArchetype], null)
             .WithIllustration(AllSpells.CreateModernSpellTemplate(vesselSpell, AnimistTrait.Apparition).Illustration)
             .WithOnSheet(sheet =>
@@ -177,10 +236,10 @@ public class Apparition : Feat
         string name2 = name ?? $"{AttunedFeat.FeatName.HumanizeTitleCase2()} dispersed";
         string desc2 = desc ?? $"Your {AttunedFeat.FeatName.HumanizeTitleCase2()} has been dispersed, forbidding you from using its abilities.";
 
-        var familiar = Familiar.GetFamiliar(source);
-        if (familiar?.QEffects.Any(q => q.Id == AnimistQEffects.SpiritFamiliar && (FeatName)q.Tag! == AttunedFeat.FeatName) ?? false)
+        bool hasFamiliar = source.HasEffect(QEffectId.FamiliarAbility) && source.HasFeat(FamiliarFeat.FeatName);
+        if (hasFamiliar)
         {
-            source.Battle.RemoveCreatureFromGame(familiar);
+            source.RemoveAllQEffects(q => q.Id == QEffectId.FamiliarAbility);
         }
 
         return new QEffect(name2, desc2, ExpirationCondition.Never, source, AllSpells.CreateModernSpellTemplate(VesselSpell, AnimistTrait.Apparition).Illustration)
@@ -216,7 +275,29 @@ public class Apparition : Feat
                     }
                 }
                 return null;
-            }
+            },
+            WhenExpires = hasFamiliar ? q =>
+            {
+			    if ((q.Owner.PersistentCharacterSheet?.Calculated.Tags.TryGetValue("CombatFamiliar", out var value) ?? false) && value is FamiliarTag familiarTag)
+			    {
+				    Illustration illustration = familiarTag.IllustrationOrDefault;
+				    string name = familiarTag.FamiliarName ?? "Familiar";
+                    q.Owner.AddQEffect(new QEffect
+					{
+						Id = QEffectId.FamiliarAbility,
+						ProvideMainAction = (QEffect qfSelf) => qfSelf.UsedThisTurn ? null : new SubmenuPossibility(illustration, name)
+						{
+							Subsections = 
+							{
+								new PossibilitySection("Familiar action")
+								{
+									PossibilitySectionId = PossibilitySectionId.FamiliarAbility
+								}
+							}
+						}.WithPossibilityGroup("Abilities")
+					});
+				}
+            } : null
         };
     }
 

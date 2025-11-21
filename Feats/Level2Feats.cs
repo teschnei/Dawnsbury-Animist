@@ -13,7 +13,6 @@ using Dawnsbury.Core.Mechanics.Targeting.TargetingRequirements;
 using Dawnsbury.Core.Mechanics.Targeting.Targets;
 using Dawnsbury.Mods.Classes.Animist.Apparitions;
 using Dawnsbury.Mods.Classes.Animist.RegisteredComponents;
-using Dawnsbury.Mods.Familiars;
 using static Dawnsbury.Mods.Classes.Animist.AnimistClassLoader;
 
 namespace Dawnsbury.Mods.Classes.Animist.Feats;
@@ -57,15 +56,7 @@ public static class Level2
                 "You can select four familiar or master abilities, instead of two.",
                 [AnimistTrait.Animist])
             .WithPrerequisite(AnimistFeat.SpiritFamiliar, "Spirit Familiar")
-            .WithEquivalent(sheet => sheet.HasFeat(Familiars.ClassFeats.FNEnhancedFamiliar))
-            .WithOnSheet(sheet =>
-            {
-                var index = sheet.SelectionOptions.FindIndex(o => o.Key.EndsWith("FamiliarAbilities"));
-                if (index > 0)
-                {
-                    sheet.SelectionOptions[index] = FamiliarFeats.CreateFamiliarFeatsSelectionOption(sheet);
-                }
-            });
+            .WithEquivalent(sheet => sheet.HasFeat(FeatName.DawnsburyEnhancedFamiliar));
         yield return new TrueFeat(AnimistFeat.GraspingSpiritsSpell, 2,
                 "Gaining substance from your magic, your apparitions increase the range of your spells, which then pull your enemy closer.",
                 "If the next action you use is to Cast a Spell that has a range and targets one creature, increase that spell’s range by 30 feet. As is standard for increasing spell ranges, if the spell normally has a range of touch, you extend its range to 30 feet. In addition to the normal effects of the spell, your apparitions briefly take on semi-physical forms and attempt to drag the target toward you. The target must attempt a Fortitude saving throw against your spell DC; on a failure, it is pulled up to 30 feet directly toward you.",

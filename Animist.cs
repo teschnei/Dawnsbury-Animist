@@ -49,7 +49,7 @@ public static class Animist
                 "You are the interlocutor between the seen and unseen, the voice that connects the mortal and the spiritual. You bond with spirits, manifesting their distinct magic and allowing their knowledge to flow through you. You may favor apparitions that grant you healing magic, others that grant you spells of destructive power, or pick and choose between different apparitions as your environment and circumstances demand. You may consider your powers part of a sacred trust or see your unique abilities as a sign that you’ve been chosen as a champion of two worlds. Whether you advocate for mortals in the planes beyond or whether you represent the spirits’ interests, you provide the bridge between realms.",
                 AnimistTrait.Animist,
                 new EnforcedAbilityBoost(Ability.Wisdom),
-                8, [Trait.Perception, Trait.Fortitude, Trait.Reflex, Trait.Simple, Trait.Unarmed, Trait.LightArmor, Trait.MediumArmor, Trait.UnarmoredDefense], [Trait.Will], 2,
+                8, [Trait.Perception, Trait.Fortitude, Trait.Reflex, Trait.Simple, Trait.Unarmed, Trait.LightArmor, Trait.MediumArmor, Trait.UnarmoredDefense, Trait.Religion], [Trait.Will], 2,
                 @$"{{b}}1. Animistic Practice.{{/b}} At 1st level, you choose an animistic practice that influences the way your power grows and develops, and you gain its first invocation.
 
 {{b}}2. Animist & Apparition Spellcasting.{{/b}} You can cast spells in two distinct ways: you both learn and prepare spells from the divine tradition yourself, and you also channel the knowledge and power of your attuned apparitions, gaining spell slots and a repertoire of spells from them that you can cast spontaneously.
@@ -81,6 +81,7 @@ You also gain one spell slot that can be used to cast any apparition spell once 
             {
                 sheet.SpellTraditionsKnown.Add(Trait.Divine);
                 sheet.SetProficiency(Trait.Spell, Proficiency.Trained);
+                sheet.TrainInThisOrThisOrSubstitute(Skill.Nature, Skill.Occultism);
 
                 sheet.PreparedSpells.Add(AnimistTrait.Animist, new PreparedSpellSlots(Ability.Wisdom, Trait.Divine));
                 sheet.PreparedSpells[AnimistTrait.Animist].Slots.Add(new FreePreparedSpellSlot(0, "AnimistSlot0-1"));
